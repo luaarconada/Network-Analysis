@@ -1,0 +1,928 @@
+---
+title: "Network analysis"
+subtitle: "Topic 1 - Introduction and preliminaries"
+author: "Pedro Galeano - Máster in Statistics for Data Science - UC3M"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    toc: yes
+    toc_depth: 3
+    number_sections: yes
+    fig_width: 10.5
+    fig_height: 7.5
+    fig_caption: yes
+    df_print: paged
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE)
+```
+
+# Examples of network data sets
+
+We'll begin the course with a few examples of **network data sets**. We are going to work mainly with the `igraph` package of `R`, as well as with the `igraphdata` package that contains real data networks. Therefore, the first thing to do is to install these packages, if they are not already installed, and load them. Then, we have a look at the data sets available in the `igraphdata` package.
+
+```{r, message=FALSE}
+library(igraph)
+library(igraphdata)
+data(package="igraphdata")
+```
+
+## The Koenigsberg network
+
+First, we have a look at the `Koenigsberg` network. For that, read the help page corresponding to `Koenigsberg`, then load the network into memory and try to understand the representation of the network in the `igraph` library of `R`:
+
+```{r }
+?Koenigsberg
+data(Koenigsberg)
+upgrade_graph(Koenigsberg)
+Koenigsberg
+```
+
+Note that all the attributes of the network are:
+
+1. name (g/c) is the name of the network (g), which is a character (c)
+2. name (v/c) is the name of the vertices (v), which is a character (c)
+3. Euler_letter (v/c) is the letter given by Euler to the vertices (v), which is a character (c)
+4. Euler_letter (e/c) is the letter given by Euler to the edges (e), which is a character (c)
+5. name (e/c) is the name of the edges (e), which is a character (c)
+
+In particular, the only attribute of the graph is the name:
+
+```{r }
+graph_attr(Koenigsberg)
+```
+
+Next, we focus on the **vertices (nodes)** of the network. More precisely, we have a look at how many vertices contain the network, the vertices themselves and the attributes of these vertices, that are:
+
+1. The name of the four zones of the city.
+2. The letter of the zones assigned by Euler. 
+
+```{r }
+gorder(Koenigsberg)
+V(Koenigsberg)
+vertex_attr_names(Koenigsberg)
+vertex_attr(Koenigsberg)
+V(Koenigsberg)$name
+V(Koenigsberg)$Euler_letter
+```
+
+Then, we focus on the **edges (links)** of the network. More precisely, we have a look at how many edges contain the network, the edges themselves and the attributes of these edges, that are:
+
+1. The name of the seven bridges.
+2. The letter of the bridges assigned by Euler.
+
+```{r }
+gsize(Koenigsberg)
+E(Koenigsberg)
+as_edgelist(Koenigsberg)
+edge_attr_names(Koenigsberg)
+edge_attr(Koenigsberg)
+E(Koenigsberg)$name
+E(Koenigsberg)$Euler_letter
+```
+
+Finally, we have a look at a basic visual representation of the graph that includes the name of the vertices and edges:
+
+```{r }
+par(mar=c(0,0,0,0))
+plot.igraph(Koenigsberg,vertex.label=V(Koenigsberg)$name,edge.label=E(Koenigsberg)$name)
+```
+
+Why this distribution and not another? We will see on topic 2.
+
+## The Zachary's karate club network
+
+Secondly, we take a look at the `karate` network. For that, read the help page corresponding to the karate network, then load the data set into memory and try to understand the representation of the network in the `igraph` library of `R`:
+
+```{r }
+?karate
+data(karate)
+upgrade_graph(karate)
+karate
+```
+
+Note that all the attributes of the network are:
+
+1. name (g/c) is the name of the network (g), which is a character (c)
+2. Citation (g/c) is the citation of the work where the network (g) was analyzed, which is a character (c)
+3. Author (g/c) is the author of the work where the network (g) was analyzed, which is a character (c)
+4. Faction (v/n) is the faction of each actor (v) in the network, which is a number (n)
+5. name (v/c) is the name of each actor (v) in the network, which is a character (c)
+6. label (v/c) is the label of each actor (v) in the network, which is a character (c)
+7. color (v/n) is the color, similar to faction 
+8. weight (e/n) is the weight of each edge (e) in the network, which is a number (n)
+
+In particular, the graph has three attributes: 
+
+1. The name of the network. 
+2. The citation. 
+3. The name of the author of the first article analyzing this network:
+
+```{r }
+graph_attr(karate)
+```
+
+Next, we focus on the vertices of the network. More precisely, we have a look at how many vertices contain the network, the vertices themselves and the attributes of these vertices, that are:
+
+1. The faction of each actor in the network.
+2. The name of each actor in the network.
+3. The label of each actor in the network.
+4. The color is similar to faction.
+
+```{r }
+gorder(karate)
+V(karate)
+vertex_attr_names(karate)
+vertex_attr(karate)
+V(karate)$Faction 
+V(karate)$name
+V(karate)$label 
+V(karate)$color 
+```
+
+Then, we focus on the edges of the network. More precisely, we have a look at how many edges contain the network, the edges themselves and the attributes of these edges, that in this case is only the weight, i.e., the number of common activities between the members of the club.
+
+```{r }
+gsize(karate)
+E(karate)
+head(as_edgelist(karate))
+edge_attr_names(karate)
+edge_attr(karate)
+E(karate)$weight
+```
+
+Finally, we have a look at a basic visual representation of the graph that shows the presence of the two factions, one centered around John A, and one centered around Mr Hi. Note also that there are edges joining members of the two factions:
+
+```{r }
+par(mar=c(0,0,0,0))
+plot.igraph(karate,vertex.label=V(karate)$name,edge.label=E(karate)$weight)
+```
+
+## The class network
+
+Third, we have a look at a network describing the friendships between each student in a class. The network relationships are in a matrix stored as a CSV file called class555_matrix.csv. **This matrix is called the adjacency matrix and will be explained in Topic 1**, so do not worry at this point. The attribute data for the students in this classroom is called class555_attributedata.csv. It contains data on the gender, race and grade for each student in the class. With these two objects, we create the network in \texttt{igraph} format after adding the attributes of the vertices:
+
+```{r }
+url1 <- "https://github.com/JeffreyAlanSmith/Integrated_Network_Science/raw/master/data/class555_matrix.csv"
+class_mat <- as.matrix(read.csv(file=url1))
+class_mat
+rownames(class_mat) <- 1:nrow(class_mat)
+colnames(class_mat) <- 1:ncol(class_mat)
+url2 <- "https://github.com/JeffreyAlanSmith/Integrated_Network_Science/raw/master/data/class555_attributedata.csv"
+class_attributes <- read.csv(file=url2,stringsAsFactors=T)
+class_attributes
+class_network <- graph_from_adjacency_matrix(adjmatrix=class_mat,mode="directed")
+class_network
+class_network <- set_vertex_attr(graph=class_network,name="gender", 
+                                     value=class_attributes$gender)
+class_network <- set_vertex_attr(graph=class_network,name="grade",
+                                     value=class_attributes$grade)
+class_network <- set_vertex_attr(graph=class_network,name="race",
+                                     value = class_attributes$race)
+class_network
+```
+
+Note that all the attributes of the network are:
+
+1. name (v/c) is the name of the students (c)
+2. gender (v/x) is the gender of the students (x)
+3. grade (v/n) is the grade of the students (n)
+4. race (v/x) is the race of the students (x)
+
+In particular, the graph has no attributes:
+
+```{r }
+graph_attr(class_network)
+```
+
+Next, we focus on the vertices of the network. More precisely, we have a look at how many vertices contain the network, the vertices themselves and the attributes of these vertices, that are:
+
+1. The name of the students.
+2. The gender of the students.
+3. The grade of the students.
+4. The race of the students.
+
+```{r }
+gorder(class_network)
+V(class_network)
+vertex_attr_names(class_network)
+head(V(class_network)$name)
+head(V(class_network)$gender)
+head(V(class_network)$grade)
+head(V(class_network)$race)
+```
+
+Then, we focus on the edges of the network. More precisely, we have a look at how many edges contain the network and the edges themselves:
+
+```{r }
+gsize(class_network)
+E(class_network)
+head(as_edgelist(class_network))
+```
+
+Finally, we have a look at a basic visual representation of the graph that shows the presence of some popular students and the presence of a few isolated students:
+
+```{r }
+
+par(mar=c(0,0,0,0))
+plot.igraph(class_network,edge.arrow.size=0.5)
+```
+
+## The IMDB network
+
+Fourth, we are going to work with a network coming from the **IMDB**. More precisely, the `Movies.Rdata` file, that can be found in Aula Global, contains a `data.frame` named `Movies` that includes several columns including:
+
+1. Act_1, is the IMDB id of one actor or actress in a movie.
+2. Act_2, is the IMDB id of another actor or actress in the same movie.
+3. movie_id, is the IMDB id of a movie from $2015$ in which Act_1 and Act_2 appeared.
+4. weight, is the normalized inverse of the product of the orders in which each actor/actress appears in the credits.
+5. title, is the title of the movie.
+6. ratings, is the number of ratings received by the movie.
+
+The database contains the $51$ movies in $2015$ with more rating. So, these are the most popular movies in $2015$. First, we load the `data.frame`, and check that there are $83266$ relationships in $51$ movies.
+
+```{r }
+load(file="C:/Users/pgaleano/Dropbox/Docencia-UC3M/Curso2022-2023/Network Analysis/R/Movies.Rdata")
+head(Movies)
+nrow(Movies)
+length(unique(Movies$title))
+```
+
+Then, we create a table to see the number of ratings received by each movie. In particular, \textit{Star Wars: Episode VII - The Force Awakens} is the movie that receives the largest number of ratings.
+
+```{r, message=FALSE}
+library(dplyr)
+library(magrittr)
+Movies %>%
+  group_by(movie_id) %>%
+  summarize(title = max(title), numRatings = max(ratings)) %>%
+  arrange(desc(numRatings))
+```
+
+Next, we gather some information about the vertices in this graph. In this case, all we need is the name and IMDB id of each actor/actress:
+
+```{r }
+actor_ids <- unique(c(Movies$Act_1,Movies$Act_2))
+library(mdsr)
+db <- src_scidb("imdb")
+V <- db %>%
+  tbl("name") %>%
+  filter(id %in% actor_ids) %>%
+  select(id, name) %>%
+  rename(actor_name = name) %>%
+  collect() %>%
+  arrange(id)
+head(V)
+```
+
+Now, we are ready to create the network that we are going to call `imdb`. For that, we make use of the function called `graph_from_data_frame` from the `igraph` package:
+
+```{r }
+imdb <- graph_from_data_frame(Movies,directed=FALSE,vertices=V)
+imdb
+```
+
+Note that all the attributes of the network are:
+
+1. name (v/c) is the IMDB id of the actor/actress (c)
+2. actor_name (v/c) is the name of the actor/actress (c)
+3. movie_id (e/n) is the IMDB id of the movie in which the actors appeared (n)
+4. weight (e/n) is the weight of the relationship (n)
+5. title (e/c) is the title of the movie (c)
+6. ratings (e/n) is the number of ratings (n)
+
+Note that the first vertex attribute is called `name`, but we would like to keep the more informative `imdbId` label.
+
+```{r }
+imdb <- set_vertex_attr(imdb,"imdbId",value=V(imdb)$name)
+imdb <- delete_vertex_attr(imdb,"name")
+imdb
+```
+
+Next, we focus on the vertices of the network. More precisely, we have a look at how many vertices contain the network, the vertices themselves and the attributes of these vertices, that are:
+
+1. actor_name, the name of the actor/actress.
+2. imdbId, the IMDB id.
+
+```{r }
+gorder(imdb)
+V(imdb)
+vertex_attr_names(imdb)
+head(V(imdb)$actor_name)
+head(V(imdb)$imdbId)
+```
+
+Then, we focus on the edges of the network. More precisely, we have a look at how many edges contain the network, the edges themselves and the attributes of these edges, that are:
+
+1. movie_id, the imdb id of the movie.
+2. weight, the weight of the relationship.
+3. title, the title of the movie.
+4. ratings, the number of ratings.
+
+```{r }
+gsize(imdb)
+E(imdb)
+head(as_edgelist(imdb))
+edge_attr_names(imdb)
+head(E(imdb)$movie_id)
+head(E(imdb)$weight) 
+head(E(imdb)$title)
+head(E(imdb)$ratings)
+```
+
+Finally, we have a look at a basic visual representation of the graph that shows the presence of different groups of actors/actresses appearing in certain movies, suggesting that a good clustering would be able to identify groups of actors/actresses highly connected:
+
+```{r }
+par(mar=c(0,0,0,0))
+plot.igraph(imdb,vertex.size=8,edge.width=0.2,edge.arrow.size=0.3,
+            edge.arrow.width=1,vertex.label.cex=0.5)
+```
+
+## The USairports network
+
+Finally, we have a look at the `USairports` network. For that, read the help page corresponding to the USairports network, then load the data set into memory and try to understand the representation of the network in the `igraph` library of `R`:
+
+```{r }
+?USairports
+data(USairports)
+upgrade_graph(USairports)
+USairports
+```
+
+Note that all the attributes of the network are:
+
+1. name (g/c) are is the name of the graph (c)
+2. name (v/c) is the name of the airports (c)
+3. City (v/c) is the city where the airport is located (c)
+4. Position (v/c) are the coordinates of the position of the airport (c)
+5. Carrier (e/c) is the carrier of the flight (c)
+6. Departures (e/n) is the number of departures (n)
+7. Seats (e/n) is the total number of seats available on the flights (n)
+8. Passengers (e/n) is the total number of passengers on the flights (n)
+9. Aircraft (e/n) is the type of the aircraft (n)
+10. Distance (e/n) is the distance between the two airports (n)
+
+In particular, the only attribute of the graph is the name:
+
+```{r }
+graph_attr(USairports)
+```
+
+Next, we focus on the vertices of the network. More precisely, we have a look at how many vertices contain the network, the vertices themselves and the attributes of these vertices, that are:
+
+1. The name of the airport.
+2. The city where the airport is located.
+3. The coordinates of the position of the airport.
+
+```{r }
+gorder(USairports)
+V(USairports)
+vertex_attr_names(USairports)
+head(V(USairports)$name)
+head(V(USairports)$City)
+head(V(USairports)$Position)
+```
+
+Then, we focus on the edges of the network. More precisely, we have a look at how many edges contain the network, the edges themselves and the attributes of these edges, that are:
+
+1. The carrier of the flight.
+2. The number of departures (for a given airline and aircraft type).
+3. The total number of seats available on the flights carried out by a given airline, using a given aircraft type.
+4. The total number of passengers on the flights carried out by a given airline, using a given aircraft type.
+5. Type of the aircraft.
+6. The distance between the two airports, in miles.
+
+```{r }
+gsize(USairports)
+E(USairports)
+head(as_edgelist(USairports))
+edge_attr_names(USairports)
+head(E(USairports)$Carrier)
+head(E(USairports)$Departures) 
+head(E(USairports)$Seats)
+head(E(USairports)$Passengers)
+head(E(USairports)$Aircraft) 
+head(E(USairports)$Distance) 
+```
+
+Note that in this network there are **loops**, represent flights taking off and landing at the same airport:
+
+```{r }
+which(which_loop(USairports)==TRUE)
+E(USairports)[which(which_loop(USairports)==TRUE)]
+```
+
+Finally, we have a look at a basic visual representation of the graph that shows the presence of different groups of airports, suggesting that a good clustering would be able to identify groups of airports highly connected. Note also the presence of isolated airports:
+
+```{r }
+par(mar=c(0,0,0,0))
+plot.igraph(USairports,vertex.size=8,edge.width=0.2,edge.arrow.size=0.3,
+            edge.arrow.width=1,vertex.label.cex=0.5)
+```
+
+# Some basic concepts on graphs
+
+## The Zachary's karate club network
+
+Here, we use the `karate` network to have a look at several aspects that are important when analyzing a real network. The analysis depends on the characteristics of the network. In particular, this network is **undirected** because the relationships are mutual. First, we remember several aspects of the network including **vertices**, **order**, **edges** and **size**. Also, remember the visual representation of the graph:
+
+```{r }
+karate
+V(karate)
+gorder(karate)
+E(karate)
+head(as_edgelist(karate))
+gsize(karate)
+plot.igraph(karate,vertex.label=V(karate)$name,edge.label=E(karate)$weight)
+```
+
+The main characteristic of the network is that there are two factions. Therefore, the members of the network are divided into two groups. We focus first on the first faction. More precisely, we obtain the **induced subgraph** corresponding to the members of the club in the first faction and obtain its order and size. Also, we obtain a visual representation of such subgraph:
+
+```{r }
+karate_1 <- which(V(karate)$Faction==1)
+karate_1_induced <- induced_subgraph(karate,karate_1)
+karate_1_induced
+gorder(karate_1_induced)
+gsize(karate_1_induced)
+plot.igraph(karate_1_induced,vertex.label=V(karate_1_induced)$name,
+            edge.label=E(karate_1_induced)$weight)
+```
+
+Next, we repeat the analysis with the members of the club in the second faction:
+
+```{r }
+karate_2 <- which(V(karate)$Faction==2)
+karate_2_induced <- induced_subgraph(karate,karate_2)
+karate_2_induced
+gorder(karate_2_induced)
+gsize(karate_2_induced)
+plot.igraph(karate_2_induced,vertex.label=V(karate_2_induced)$name,
+            edge.label=E(karate_2_induced)$weight)
+```
+
+The two factions are leaded by Mr Hi and John A. Therefore, we check which are their neighbors as well as their incident edges. Note that Mr Hi and John A are not linked:
+
+```{r }
+neighbors(karate,1)
+incident(karate,1)
+neighbors(karate,34)
+incident(karate,34)
+```
+
+Moreover, let's find the **degrees** for Mr Hi and John A. Check that are very close and reasonable large compared with the size of the network. This means that these two members are highly connected inside the network:
+
+```{r }
+degree(karate,1)
+degree(karate,34)
+```
+
+To have a more deep idea of the network, we obtain its **degree sequence**. We also check that the sum of vertex degrees is twice the size of the graph:
+
+```{r }
+degree(karate)
+sum(degree(karate))
+2*gsize(karate)
+```
+
+Once we have the degree sequence of the network, we can compute the **average degree** and the **degree distribution**. Note that the average degree is around four times smaller than the degrees of Mr Hi and John A. suggesting that the degree distribution is skewed. This is confirmed in the plot.
+
+```{r }
+mean(degree(karate))
+table(degree(karate))
+degree_distribution(karate)
+par(mar=c(5,4,4,2)+0.1)
+plot(0:max(degree(karate)),degree_distribution(karate),
+     type="h",col="deepskyblue2",lwd=2,
+     main="Degree distribution of karate network",
+     xlab="Degree",ylab="Frequency")
+points(0:max(degree(karate)),degree_distribution(karate),pch=19)
+```
+
+Note that we have computed all the degrees without considering the weights. This is done next, where we compute the **weighted degree** for Mr Hi and John A, as well as the **weighted degree sequence** and the **average weighted degree** of the network. It is very important to understand the weights and their use in `igraph`. In this case, a large weight implies a very close relationship between two members of the network, which is exactly what interests us. In other cases, the weight may not indicate a close relationship, but rather something else, and we may need to redefine the weight or ignore it.
+
+```{r }
+strength(karate,1)
+strength(karate,34)
+strength(karate)
+mean(strength(karate))
+```
+
+Unfortunately, `igraph` has not a function to compute the **weighted degree distribution** of a network. Therefore, we include the following function called `graph_strength_distribution` to compute such weighted degree distribution.
+
+```{r }
+graph_strength_distribution <- function (graph,cumulative=FALSE,...)
+{
+  if (!is.igraph(graph)) {
+    stop("Not a graph object")
+  }
+  cs <- graph.strength(graph,...)
+  hi <- hist(cs,-1:max(cs),plot=FALSE)$density
+  if (!cumulative) {
+    res <- hi
+  }
+  else {
+    res <- rev(cumsum(rev(hi)))
+  }
+  res
+}
+```
+
+Once the function is loaded, we have a look at the different values that can take the weighted degree, from which we can obtain the weighted degree distribution, that is not specially different to the degree distribution shown before, except in the scale:
+
+```{r }
+table(strength(karate))
+graph_strength_distribution(karate)
+plot(0:max(strength(karate)),graph_strength_distribution(karate),
+     type="h",col="deepskyblue2",lwd=2,
+     main="Weighted degree distribution of karate network",
+     xlab="Degree",ylab="Frequency")
+points(0:max(strength(karate)),graph_strength_distribution(karate),pch=20)
+```
+
+Now, we check that the network is not a **multigraph** (there are no **loops** or **multiedges**). For that we use the function `is_simple`. Multigraphs can be converted into simple graphs using the function `simplify`. However, we do not attempt this here:
+
+```{r }
+is_simple(karate)
+```
+
+To take a **random walk** in a graph, we can use the function `random_walk`. For instance, for a random walk of length $5$ starting in Mr Hi (the first vertex), we write:
+
+```{r }
+random_walk(karate,start=1,steps=5,stuck="return")
+```
+
+Additionally, we can use the function called `girth` for finding the **shortest circuit** in a network. Note that the shortest circuit might not be unique:
+
+```{r }
+girth(karate,circle=TRUE)
+```
+
+To check whether the network is **connected** we use the function called `is_connected`. Additionally, we can obtain the **components** of the network by using the function called `components`. In this case, there is a single component because the network is connected:
+
+```{r }
+is_connected(karate)
+components(karate)
+```
+
+Finally, we compute the **diameter**, **path** and **farthest vertices** initially with no weights and then taking into account the weights. Let's see what happens with no weights:
+
+```{r }
+get_diameter(karate,weights=rep(1,gsize(karate)))
+diameter(karate,weights=rep(1,gsize(karate)))
+farthest_vertices(karate,weights=rep(1,gsize(karate)))
+```
+
+Now, to take into account the weights, note that such weights is a measure of the strength of the relationship. Then, we compute the **diameter**, **path** and **farthest vertices** weighting the edges with the inverse of the current weights. Therefore, these values are somewhat arbitrary.
+
+```{r }
+get_diameter(karate,weights=1/E(karate)$weight)
+diameter(karate,weights=1/E(karate)$weight)
+farthest_vertices(karate,weights=1/E(karate)$weight)
+```
+
+## The IMDB network
+
+Next, we use the `imdb` network to carry out an analysis similar to the previous one. This network is also **undirected** because the relationships are mutual. First, we remember several aspects of the network including **vertices**, **order**, **edges** and **size**. Also, remember the visual representation of the graph:
+
+```{r }
+imdb
+V(imdb)
+gorder(imdb)
+E(imdb)
+head(as_edgelist(imdb))
+gsize(imdb)
+par(mar=c(0,0,0,0))
+plot.igraph(imdb,vertex.size=8,edge.width=0.2,edge.arrow.size=0.3,
+            edge.arrow.width=1,vertex.label.cex=0.5)
+```
+
+The main characteristic of the network is that there are $51$ movies. So we can think that the graph can be divided into $51$ induced subgraphs. However, the movie-induced subgraphs will lead to a network where all vertices are connected, which is not of great interest. Let's see the one corresponding to the movie called **Star Wars: Episode VII - The Force Awakens**:
+
+```{r }
+imdb_starwars <- unique(c(as.matrix(Movies[which(E(imdb)$movie_id==4260166),c(1,2)])))
+imdb_starwars_induced <- 
+  induced_subgraph(imdb,which(is.element(as.numeric(V(imdb)$imdbId),imdb_starwars)))
+imdb_starwars_induced
+gorder(imdb_starwars_induced)
+gsize(imdb_starwars_induced)
+plot.igraph(imdb_starwars_induced,vertex.label=V(imdb_starwars_induced)$actor_name)
+```
+
+To have a more deep idea of the network, we obtain its **degree sequence**, the **average degree** and the **degree distribution**, without taking the weights into account. Note that the average degree is equal to $64$, meaning that in average every actor/actress has worked with $64$ colleges. Of course, the distribution is very skewed to the right. 
+
+```{r }
+head(degree(imdb))
+mean(degree(imdb))
+table(degree(imdb))
+degree_distribution(imdb)
+par(mfrow=c(1,2),mar=c(5,4,4,2)+0.1)
+hist(degree(imdb),
+     freq=FALSE,col="deepskyblue2",
+     main="Degree distribution of IMDB network",
+     xlab="Degree")
+plot(density(degree(imdb)),
+     lwd=3,col="deepskyblue2",
+     main="Kernel density of degree distribution of IMDB network")
+```
+
+Which are the actors/actresses with larger degrees? Let's add another attribute called **degree** to the vertices of the network and then let's see which are such actors/actresses. Note that there are several not very popular names:
+
+```{r }
+imdb <- set_vertex_attr(imdb,"degree",value=degree(imdb))
+V(imdb)$actor_name[sort.int(V(imdb)$degree,decreasing=TRUE,index.return=TRUE)$ix[1:50]]
+```
+
+Now, we compute the **weighted degree sequence**, the **average weighted degree** and the **weighted degree distribution** of the network. For that, we consider that a large weight implies two actors/actresses that are very important. Note that the weighted degree distribution is quite different to the degree distribution shown before because in a movie there are many non-leading actors/actresses.
+
+```{r }
+head(strength(imdb))
+par(mfrow=c(1,2),mar=c(5,4,4,2)+0.1)
+hist(strength(imdb),
+     freq=FALSE,col="deepskyblue2",
+     main="Weighted Degree distribution of IMDB network",
+     xlab="Degree")
+plot(density(strength(imdb)),
+     lwd=3,col="deepskyblue2",
+     main="Kernel density of weighted degree distribution of IMDB network")
+```
+
+Which are the actors/actresses with larger weighted degrees? Let's add another attribute called **w_degree** to the vertices of the network and then let's see which are such actors/actresses. Note that in this case, most of the actors/actresses are very popular:
+
+```{r }
+imdb <- set_vertex_attr(imdb,"w_degree",value=strength(imdb))
+V(imdb)$actor_name[sort.int(V(imdb)$w_degree,decreasing=TRUE,index.return=TRUE)$ix[1:50]]
+```
+
+Now, we check that the network is a **multigraph** because there are $61$ **multiedges**, i.e., $61$ pairs of actors/actresses that appears together in more than one movie:
+
+```{r }
+is_simple(imdb)
+sum(which_multiple(imdb))
+```
+
+To take a **random walk** in a graph, we can use the function `random_walk`. For instance, for a random walk of length $5$ starting in Tom Hardy:
+
+```{r }
+V(imdb)$actor_name[random_walk(imdb,start=which(V(imdb)$actor_name=="Hardy, Tom"),
+                               steps=5,stuck="return")]
+```
+
+As before, we check whether the network is **connected** with the function called `is_connected`. Additionally, we obtain the **components** of the network by using the function called `components`. In this case, there are two components, one with $2570$ actors/actresses and one with only $32$ actors/actresses.
+
+```{r }
+is_connected(imdb)
+components(imdb)
+```
+
+We obtain the actors in the second component and check that all of them appear in one movie calle **The witch: A New-England Folktale**:
+
+```{r }
+V(imdb)$actor_name[which(components(imdb)$membership==2)]
+unique(E(induced_subgraph(imdb,V(imdb)[which(components(imdb)$membership==2)]))$title)
+```
+
+Finally, we compute the **diameter**, **path** and **farthest vertices** initially with no weights and then taking into account the weights. Let's see what happens with no weights:
+
+```{r }
+diameter_imdb <- get_diameter(imdb,weights=rep(1,gsize(imdb)))
+diameter_imdb
+V(imdb)$actor_name[diameter_imdb]
+diameter(imdb,weights=rep(1,gsize(imdb)))
+farthest_vertices(imdb,weights=rep(1,gsize(imdb)))
+```
+
+So the two actors/actresses furthest away are **Christopher Adamson** and **Nick Pitera** and the diameter is $6$. Now, we compute the **diameter**, **path** and **farthest vertices** weighting the edges. For that, take into account that such weights measure the strength of the relationship. Then, we compute the diameter, path and farthest vertices weighting the edges with the inverse of the current weights. Therefore, these values are somewhat arbitrary.
+
+```{r }
+diameter_imdb <- get_diameter(imdb,weights=1/E(imdb)$weight)
+diameter_imdb
+V(imdb)$actor_name[diameter_imdb]
+diameter(imdb,weights=1/E(imdb)$weight)
+farthest_vertices(imdb,weights=1/E(imdb)$weight)
+```
+
+So the two actors/actresses furthest away are **Martin Dew** and **Deke Sharon** and the diameter is $155.5$. 
+
+Let's save the imdb network in a file for posterior topics:
+
+```{r }
+save(imdb,file="imdb.RData")
+```
+
+## The USairports network
+
+Next, we use the `USairports` network to have a look at several aspects that are important when analyzing a real network. Again, note that the analysis depends on the characteristics of the network. In particular, this network is **directed**. First, we remember several aspects of the network including the **vertices**, **order**, **edges** and **size**. Also, remember the visual representation of the graph: 
+
+```{r }
+USairports
+V(USairports)
+gorder(USairports)
+E(USairports)
+head(as_edgelist(USairports))
+gsize(USairports)
+par(mar=c(0,0,0,0))
+plot.igraph(USairports,vertex.size=8,edge.width=0.2,edge.arrow.size=0.3,
+            edge.arrow.width=1,vertex.label.cex=0.5)
+```
+
+There are many airports, so we focus first on having a look at the **neighbors** of the first member of the network in the city of Bangor. Additionally, we compute the **incident neighbors**, i.e., the airports that can be reached from Bangor directly:
+
+```{r }
+V(USairports)$City[which(V(USairports)$name=="BGR")]
+neighbors(USairports,1)
+V(USairports)$City[neighbors(USairports,1)]
+incident(USairports,1)
+```
+
+The USairports network is directed, so we obtain the **in**, **out** and **total degree** for Bangor:
+
+```{r }
+degree(USairports,1,mode="in")
+degree(USairports,1,mode="out")
+degree(USairports,1,mode="total")
+```
+
+Similarly, we compute the **in**, **out** and **total degree sequence** of the network. Then, check that the sum of the in and out vertex degrees is the size of the graph:
+
+```{r }
+head(degree(USairports,mode="in"))
+head(degree(USairports,mode="out"))
+head(degree(USairports,mode="total"))
+sum(degree(USairports,mode="in"))
+sum(degree(USairports,mode="out"))
+gsize(USairports)
+```
+
+From these degrees, we can compute the **average in and out degree** of the network. Additionally, we check that the average degree is equal to the ratio of the size and the order of the network:
+
+```{r }
+mean(degree(USairports,mode="in"))
+mean(degree(USairports,mode="out"))
+gsize(USairports)/gorder(USairports)
+```
+
+We focus next in the **in degree distribution** of the network. Taking into account the large number of vertices (airports), it looks like an histogram or a kernel density can be more appropriate, and this is what is done. Note that the degree distribution is highly skewed:
+
+```{r }
+table(degree(USairports,mode="in"))
+head(degree_distribution(USairports,mode="in"))
+par(mfrow=c(1,2),mar=c(5,4,4,2)+0.1)
+hist(degree(USairports,mode="in"),
+     freq=FALSE,col="deepskyblue2",
+     main="In degree distribution of USAairports network",
+     xlab="In degree")
+plot(density(degree(USairports,mode="in")),
+     lwd=3,col="deepskyblue2",
+     main="Kernel density of in degree distribution of USAairports network")
+```
+
+We repeat the previous but for the **out degree** instead of the in degree:
+
+```{r }
+table(degree(USairports,mode="out"))
+head(degree_distribution(USairports,mode="out"))
+par(mfrow=c(1,2),mar=c(5,4,4,2)+0.1)
+hist(degree(USairports,mode="out"),
+     freq=FALSE,col="deepskyblue2",
+     main="Out degree distribution of USAairports network",
+     xlab="Out degree")
+plot(density(degree(USairports,mode="out")),
+     lwd=3,col="deepskyblue2",
+     main="Kernel density of out degree distribution of USAairports network")
+```
+
+Again, we repeat the same steps for the **total degree** instead of the in and out degrees. Note the similarity of all these degree distributions:
+
+```{r }
+table(degree(USairports,mode="total"))
+head(degree_distribution(USairports,mode="total"))
+par(mfrow=c(1,2),mar=c(5,4,4,2)+0.1)
+hist(degree(USairports,mode="total"),
+     freq=FALSE,col="deepskyblue2",
+     main="Total degree distribution of USAairports network",
+     xlab="Total degree")
+plot(density(degree(USairports,mode="total")),
+     lwd=3,col="deepskyblue2",
+     main="Kernel density of total degree distribution of USAairports network")
+```
+
+We check next that the USairports network is not simple. This is because there are loops and multiedges:
+
+```{r }
+is_simple(USairports)
+```
+
+We can take a **random walk** in the network of length $5$, that represents $4$ flights, starting in Bangor:
+
+```{r }
+rw_USairports <- random_walk(USairports,start=1,5,mode="out",stuck="return")
+rw_USairports
+V(USairports)$City[rw_USairports]
+```
+
+Also, we can find the **shortest circuit** in the network, that again is not unique. Of course, the length of the shortest circuit is $3$:
+
+```{r }
+girth(USairports,circle=TRUE)
+V(USairports)$City[girth(USairports,circle=TRUE)$circle]
+```
+
+We check whether the network is **connected (strongly and/or weakly)** and obtain the **components** in both cases. Note that there is a component with most of the airports and another components with only $1$ or $2$ airports:
+
+```{r }
+is_connected(USairports,mode="strong")
+is_connected(USairports,mode="weak")
+components(USairports,mode="strong")
+components(USairports,mode="weak")
+```
+
+Finally, we obtain the **diameter**, **path** and **farthest vertices (strongly and weakly)**. Note that the diameter in the strong case is larger than the diameter in the weak case, as expected. See also that these diameters are large and that if one has to go from Hydaburg to Port Williams or from Tinian to Van Nuys, probably is better to consider an alternative conveyance:
+
+```{r }
+get_diameter(USairports,directed=TRUE)
+diameter(USairports,directed=TRUE)
+farthest_vertices(USairports,directed=TRUE)
+V(USairports)$City[get_diameter(USairports,directed=TRUE)]
+get_diameter(USairports,directed=FALSE)
+diameter(USairports,directed=FALSE)
+farthest_vertices(USairports,directed=FALSE)
+V(USairports)$City[get_diameter(USairports,directed=FALSE)]
+```
+
+# Families of graphs
+
+## Full, ring, tree and star graphs
+
+The **full**, **ring**, **tree** and **star** graphs are families of graphs commonly encountered in practice. Next, we generate a graph of the previous families and have a look at their basic visual representations:
+
+```{r }
+full_graph <- make_full_graph(10)
+ring_graph <- make_ring(10)
+tree_graph <- make_tree(10,mode="undirected")
+star_graph <- make_star(10,mode="undirected")
+```
+
+```{r }
+par(mfrow=c(2,2))
+plot.igraph(full_graph,main="Full graph")
+plot.igraph(ring_graph,main="Ring graph")
+plot.igraph(tree_graph,main="Tree graph")
+plot.igraph(star_graph,main="Star graph")
+```
+
+## Bipartite graphs
+
+The **bipartite graphs** are conceptually more complex than the standard families of graphs. Here, we generate a bipartite graph after defining two different types of vertices and the corresponding edges. Check that there are not edges between vertices with the same color.
+
+```{r }
+types_bip <- c(0,0,0,0,0,1,1,1,1,1)
+edges_bip <- c(1,6,1,7,1,8,1,9,1,10,2,7,2,8,2,9,2,10,3,8,3,9,3,10,4,9,4,10,5,10)
+bipartite_graph <- make_bipartite_graph(types_bip,edges=edges_bip)
+par(mfrow=c(1,1),mar=c(5,4,4,2)+0.1)
+plot.igraph(bipartite_graph,main="Bipartite graph",
+            vertex.color=1*vertex_attr(bipartite_graph)$type+1)
+```
+
+# The adjacency matrix
+
+## Adjacency matrix for Koenigsberg, karate, class, IMDB, and USairports
+
+The **adjacency matrix** provides with a sample description of a network. It contains all the information regarding the graph behind the network and many computations done before relies on such matrix. Here, we have just simply a look at the adjacency matrices of the `Koenigsberg`, `karate`, `class`, `imdb`, and `USairports` networks.
+
+```{r }
+as_adjacency_matrix(Koenigsberg)
+as_adjacency_matrix(karate)
+as_adjacency_matrix(class_network)
+as_adjacency_matrix(imdb)[1:10,1:10]
+as_adjacency_matrix(USairports)[1:10,1:10]
+```
+
+## Relationship with degrees
+
+Compare degree with sum of the rows of the adjacency matrix for the Koenigsberg graph:
+
+```{r }
+head(degree(Koenigsberg))
+head(apply(as_adjacency_matrix(Koenigsberg),1,sum))
+```
+
+Compare in-degree with sum of the columns of the adjacency matrix for the USairports graph:
+
+```{r }
+head(degree(USairports,mode="in"))
+head(apply(as_adjacency_matrix(USairports),2,sum))
+```
+
+Compare out-degree with sum of the rows of the adjacency matrix for the USairports graph:
+ 
+```{r }
+head(degree(USairports,mode="out"))
+head(apply(as_adjacency_matrix(USairports),1,sum))
+```
+
+<div class="tocify-extend-page" data-unique="tocify-extend-page" style="height: 0;"></div>

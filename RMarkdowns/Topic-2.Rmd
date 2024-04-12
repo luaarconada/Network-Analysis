@@ -1,0 +1,381 @@
+---
+title: "Network analysis"
+subtitle: "Topic 2 - Visualizing networks"
+author: "Pedro Galeano - Máster in Statistics for Data Science - UC3M"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    toc: yes
+    toc_depth: 3
+    number_sections: yes
+    fig_width: 10.5
+    fig_height: 7.5
+    fig_caption: yes
+    df_print: paged
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE)
+```
+
+# Graph layouts
+
+## Simple graph layouts
+
+The first thing to do in the topic is to draw some **standard graph** layouts for the **Karate Network**. For that, we load the `igraph` and `igraphdata` packages into memory: 
+
+```{r, message=FALSE}
+library(igraph)
+library(igraphdata)
+```
+
+Next, load the `karate` network into memory:
+
+```{r }
+data(karate)
+karate
+```
+
+Remember some aspects of the network. For instance, the order of the network, the vertices and their attributes, given by:
+
+1. Faction, the faction of each actor in the network.
+2. name, the name of each actor in the network.
+3. label, the label of each actor in the network.
+4. color, the color is similar to faction.
+
+```{r }
+gorder(karate)
+V(karate)
+vertex_attr_names(karate)
+vertex_attr(karate)
+V(karate)$Faction 
+V(karate)$name
+V(karate)$label 
+V(karate)$color 
+```
+
+Next, the size of the network, the edges and its only attributes that is:
+
+1. weight, the number of common activities between the members of the club.
+
+```{r }
+gsize(karate)
+E(karate)
+head(as_edgelist(karate))
+edge_attr_names(karate)
+edge_attr(karate)
+E(karate)$weight
+```
+
+Now, sequentially, we obtain the **circular**, **star**, **tree**, **grid** and **sphere** layouts of the `karate` network using all the default options of the `igraph` package:
+
+```{r }
+plot.igraph(karate,layout=layout_in_circle,
+            main="Karate network with circular layout")
+plot.igraph(karate,layout=layout_as_star,
+            main="Karate network with star layout")
+plot.igraph(karate,layout=layout_as_tree,
+            main="Karate network with tree layout")
+plot.igraph(karate,layout=layout_on_grid,
+            main="Karate network with grid layout")
+plot.igraph(karate,layout=layout_on_sphere,
+            main="Karate network with sphere layout")
+```
+
+Some conclusions from the previous plots are the following:
+
+1. The circular and star layouts appear to confirm that the number of edges is not very large. This is a **sparse network**, because the number of edges is relatively small compared with the number of vertices. 
+
+2. The tree layout shows that several members of the blue faction have relationships with members of the orange faction. Also, there are some isolated vertices, such as the numbers $17$, $25$ and $26$. Additionally, two members of the orange faction, $14$ and $20$, are not far from being members of the blue faction.
+
+3. The grid layout shows that Mr. Hi and John A. are the two vertices that attract more edges. Also the layout shows which members of the blue faction, $9$ and $10$, are closer to the orange faction.
+
+4. The sphere layout is more complex. Anyway, Mr. Hi and John A. are over plotted in the center, showing that these are the most important vertices in the network.
+
+## Chord diagram
+
+It is interesting to mention the **chord diagram**, that is a kind of interactive circle layout that is becoming very popular. A chord diagram can be found in the `chorddiag` package as follows:
+
+```{r, message=FALSE,warning=FALSE}
+library(devtools)
+devtools::install_github("mattflor/chorddiag")
+library(chorddiag)
+chorddiag(as.matrix(as_adjacency_matrix(karate)))
+```
+
+Note that it is possible to select the different links, so that it is easy to identify each of the relationships between vertices/nodes. Also, note that the vertices with a larger number of links are the ones with larger widths. The resulting plot is very nice but take into account that when the number of nodes is very large, the **chord diagram** can be diffuse.
+
+## Graph layouts based on maximizing energy functions
+
+Here, we draw some layouts based on **maximizing energy functions** for the `karate` network. These are sophisticated methods based on the maximization of energy functions that tries to obtain graphical representations of the network that:
+
+1. Distribute vertices away from each other.
+
+2. Keep edges short.
+
+3. Minimize edge crossings.
+
+4. Keep vertices from coming too close to edges.
+
+Next, sequentially, we obtain the **Davidson-Harel**, **Fruchterman-Reingold**, **GEM force-directed**, **graphopt** and **Kamada-Kawai** layouts of the `karate` network. We fix a seed because the solutions have a random component: 
+
+```{r }
+set.seed(1)
+plot.igraph(karate,layout=layout_with_dh,
+            main="Karate network with Davidson-Harel layout")
+plot.igraph(karate,layout=layout_with_fr,
+            main="Karate network with Fruchterman-Reingold layout")
+plot.igraph(karate,layout=layout_with_gem,
+            main="Karate network with GEM force-directed layout")
+plot.igraph(karate,layout=layout_with_graphopt,
+            main="Karate network with graphopt layout")
+plot.igraph(karate,layout=layout_with_kk,
+            main="Karate network with Kamada-Kawai layout")
+```
+
+Some conclusions from the previous plots are the following:
+
+1. The first four layouts separate the two factions. 
+
+2. The Davidson-Harel, Fruchterman-Reingold and graphopt layouts place Mr. Hi and John A. in the center of the two groups of vertices.
+
+3. The GEM force-directed layout places Mr. Hi and John A. very close to each other.
+
+4. The Kamada-Kawai layout is more influenced by the neighbours. See, for instance, the vertices number 3 and 9, that are related with members of the other factions.
+
+## Graph layouts based on multidimensional scaling
+
+Next, we obtain the layout based on **multidimensional scaling** of the `karate` network:
+
+```{r }
+plot.igraph(karate,layout=layout_with_mds,
+            main="Karate network with multidimensional scaling layout")
+```
+
+In this case, the multidimensional scaling layout does not give very appealing results. However, this does not always have to be the case for any other network.
+
+# Decorating graph layouts
+
+In this section, we will see how to improve the basic representation of networks. There are several possibilities for doing this. To exemplify, many of these options, we consider the **Davidson-Harel** layout, so remember the resulting plot:
+
+```{r }
+set.seed(1)
+plot.igraph(karate,layout=layout_with_dh,
+            main="Karate network with Davidson-Harel layout")
+```
+
+We take the following actions:
+
+1. To reduce the size and the labels of the vertices, we use the options `vertex.size` and `vertex.label.cex`, respectively. On the one hand, the default option of `vertex.size` is 15, so that we reduce to 12. On the other hand, the default option of `vertex.label.cex` is 1, so that we reduce to 0.8.
+
+```{r }
+set.seed(1)
+plot.igraph(karate,layout=layout_with_dh,
+            main="Karate network with Davidson-Harel layout",
+            vertex.size=12,vertex.label.cex=0.8)
+```
+
+2. To replace the circles corresponding to the leaders of the two factions with rectangles, we define an attribute called `shape` that is equal to `circle` for all the vertices except those corresponding to Mr. Hi and John A., that are equal to `rectangle`. Now, when plotting we get the desired effect.
+
+```{r }
+set.seed(1)
+V(karate)$shape <- "circle"
+V(karate)[c("Mr Hi","John A")]$shape <- "rectangle"
+plot.igraph(karate,layout=layout_with_dh,
+            main="Karate network with Davidson-Harel layout",
+            vertex.size=12,vertex.label.cex=0.8)
+```
+
+3. To change the color of the two factions, we define an attribute called `color` that is equal to `aquamarine2` for the vertices in the first faction and is equal to `orchid2` for the vertices in the second faction. Now, when plotting we get the desired effect.
+
+```{r }
+set.seed(1)
+V(karate)[Faction==1]$color <- "aquamarine2"
+V(karate)[Faction==2]$color <- "orchid2"
+plot.igraph(karate,layout=layout_with_dh,
+            main="Karate network with Davidson-Harel layout",
+            vertex.size=12,vertex.label.cex=0.8)
+```
+
+4. To assign a vertex area proportional to the vertex degree, we define an attribute called `size` that is equal to the vertex degree. However, note that we get some vertices very small, while others are very large. 
+
+```{r }
+set.seed(1)
+V(karate)$size <- degree(karate)
+plot.igraph(karate,layout=layout_with_dh,
+            main="Karate network with Davidson-Harel layout",
+            vertex.label.cex=0.8)
+```
+
+5. To reduce such differences, we consider three times the logarithm of the degree plus 10 to avoid too small vertices. Note that this works reasonably well for this network, but this choice may not be adequate in other circumstances.
+
+```{r }
+set.seed(1)
+V(karate)$size <- 3 * log(degree(karate)) + 10
+plot.igraph(karate,layout=layout_with_dh,
+            main="Karate network with Davidson-Harel layout",
+            vertex.label.cex=0.8)
+```
+
+6. To weight edges by number of common activities, we define an attribute called `width` that is equal to the weight of the edge. Now, the width of the edges will be equal to their weights.
+
+```{r }
+set.seed(1)
+E(karate)$width <- E(karate)$weight
+plot.igraph(karate,layout=layout_with_dh,
+            main="Karate network with Davidson-Harel layout",
+            vertex.label.cex=0.8)
+```
+
+7. To add colors to the edges depending on the faction of the vertices that they are joining, we change the attribute called `color` to have cyan edges for vertices in the first faction, gold edges for vertices in different factions and red edges for vertices in the second faction.
+
+```{r }
+set.seed(1)
+F1 <- V(karate)[Faction==1]
+F2 <- V(karate)[Faction==2]
+E(karate)[F1 %--% F1]$color <- "cyan2"
+E(karate)[F1 %--% F2]$color <- "gold2"
+E(karate)[F2 %--% F2]$color <- "indianred2"
+plot.igraph(karate,layout=layout_with_dh,
+            main="Karate network with Davidson-Harel layout",
+            vertex.label.cex=0.8)
+```
+
+# Visualizing large networks
+
+## The USairports network
+
+First, we are going to use the **USairports** network to check that visualizing large networks is not very easy, unless some additional information regarding the network is used. First of all, we load the data set in the memory and have a look at it: 
+
+```{r }
+data(USairports)
+USairports
+```
+
+Remember some aspects of the network. For instance, the order of the network, the vertices and their attributes, given by:
+
+1. name, the name of the airport.
+2. City, the city where the airport is located.
+3. Position, the coordinates of the position of the airport.
+
+```{r }
+vcount(USairports)
+V(USairports)
+vertex_attr_names(USairports)
+head(V(USairports)$name)
+head(V(USairports)$City) 
+head(V(USairports)$Position)
+```
+
+Next, the size of the network, the edges and their attributes are:
+
+1. Carrier, the carrier of the flight.
+2. Departures, the number of departures (for a given airline and aircraft type).
+3. Seats, the total number of seats available on the flights carried out by a given airline, using a given aircraft type.
+4. Passengers, the total number of passengers on the flights carried out by a given airline, using a given aircraft type.
+5. Aircraft, the type of the aircraft.
+6. Distance, the distance between the two airports, in miles.
+
+```{r }
+ecount(USairports)
+E(USairports)
+head(get.edgelist(USairports))
+edge_attr_names(USairports)
+head(E(USairports)$Carrier)
+head(E(USairports)$Departures)
+head(E(USairports)$Seats) 
+head(E(USairports)$Passengers)
+head(E(USairports)$Aircraft)
+head(E(USairports)$Distance) 
+```
+
+For large networks, the multidimensional scaling layout has sense. This is because large networks use to contain groups (communities) that can be reasonably well distinguished with multidimensional scaling. The plot obtained with this method for the `USairports` network is the following:
+
+```{r }
+plot.igraph(USairports,layout=layout_with_mds,
+            main="USairports network with multidimensional scaling layout",
+            vertex.size=6,edge.width=0.2,edge.arrow.size=0.3,edge.arrow.width=1,
+            vertex.label.cex=0.5)
+```
+
+Note that the vertices are clustered into several groups. Then, one possibility is to identify the clusters and a central member of the cluster and then visualize the centers rather than the whole network. Community detection, which is the name of clustering in network analysis, will be given in Topic 3.
+
+## The IMDB network
+
+Finally, we try to visualize the **IMDB** network. For that, we first carry out all the steps taken in Topic 1 to create the network in the `igraph` format. For that, we need to load the `Movies.Rdata` file, that can be found in Aula Global. 
+
+```{r }
+load(file="C:/Users/pgaleano/Dropbox/Docencia-UC3M/Curso-2023-2024/Network-Analysis/R/Movies.Rdata")
+actor_ids <- unique(c(Movies$Act_1,Movies$Act_2))
+library(mdsr)
+library(dplyr)
+db <- src_scidb("imdb")
+V <- db %>%
+  tbl("name") %>%
+  filter(id %in% actor_ids) %>%
+  select(id, name) %>%
+  rename(actor_name = name) %>%
+  collect() %>%
+  arrange(id)
+head(V)
+imdb <- graph_from_data_frame(Movies,directed=FALSE,vertices=V)
+imdb <- set_vertex_attr(imdb,"imdbId",value=V(imdb)$name)
+imdb <- delete_vertex_attr(imdb,"name")
+imdb
+```
+
+We have a look at how many vertices contain the network, the vertices themselves and the attributes of these vertices, that are:
+
+1. actor_name, the name of the actor/actress.
+2. imdbId, the IMDB id.
+
+```{r }
+gorder(imdb)
+V(imdb)
+vertex_attr_names(imdb)
+head(V(imdb)$actor_name)
+head(V(imdb)$imdbId)
+```
+
+Then, we focus on the edges of the network. More precisely, we have a look at how many edges contain the network, the edges themselves and the attributes of these edges, that are:
+
+1. movie_id, the imdb id of the movie.
+2. weight, the weight of the relationship.
+3. title, the title of the movie.
+4. ratings, the number of ratings.
+
+```{r }
+gsize(imdb)
+E(imdb)
+head(as_edgelist(imdb))
+edge_attr_names(imdb)
+head(E(imdb)$movie_id)
+head(E(imdb)$weight) 
+head(E(imdb)$title)
+head(E(imdb)$ratings)
+```
+
+Remember that the plot with default layout was very informative about the clustering structure of the network, so in this case, the plot is no so complicated as the one for the **USairports** network. 
+
+```{r }
+plot.igraph(imdb,main="IMDB network with default layout",
+            vertex.size=8,edge.width=0.2,edge.arrow.size=0.3,
+            edge.arrow.width=1,vertex.label.cex=0.5)
+```
+
+Another possibility is the multidimensional scaling layout. However, in this case, the plot is not so informative:
+
+```{r }
+plot.igraph(imdb,layout=layout_with_mds,
+            main="IMDB network with multidimensional scaling layout",
+            vertex.size=6,edge.width=0.2,edge.arrow.size=0.3,edge.arrow.width=1,
+            vertex.label.cex=0.5)
+```
+
+Other layouts are very time consuming, so we do not attempt to obtain such layouts here for this network.
+
+<div class="tocify-extend-page" data-unique="tocify-extend-page" style="height: 0;"></div>

@@ -1,0 +1,46 @@
+---
+title: "Network Analysis - Assignment 1"
+author: "Alejandro Macías Pastor, Nile Ansotegi Arrien, Lúa Arconada Manteca"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r,warning=FALSE,message=FALSE}
+library(igraph)
+```
+
+We present a social network dataset based on interactions between members of the 117th United States Congress between Feb. 9, 2022, and June 9, 2022. The dataset takes the form of a directed, weighted network in which the edge weights are empirically obtained “probabilities of influence” between all pairs of Congresspeople. 
+
+We have 475 vertices and 13289 edges. 
+
+Twitter's application programming interface (API) V2 was used to determine the number of times each member of Congress retweeted, quote tweeted, replied to, or mentioned other Congressional members, and the probability of influence was found by normalizing the summed influence by the number of tweets issued by each Congressperson. This network may be of particular interest to the study of information diffusion within social networks.
+
+```{r}
+data = read.table("congress.edgelist", sep="", header=F,
+                  col.names=c("V1", "V2", "delete", "weight"))
+data = data[,-3]
+data$weight = gsub("}", '', data$weight)
+data$weight = as.numeric(data$weight)
+```
+
+```{r}
+g = igraph::graph_from_data_frame(data)
+plot(g, vertex.size=10, vertex.label.cex=0.25, edge.labels=data$weight, edge.arrow.size=0.5)
+```
+
+The graph we are analyzing presents several challenges that impact our ability to draw clear conclusions.
+While there are likely alternative visualization methods that could offer better clarity, we have not yet explored these approaches in class. 
+
+Firstly, the structure of the graph makes it difficult to discern communities due to overlapping edges and vertices. Observing the network, we could say that there are two main communities. These communities could correspond to people from the same political party, influencing each other more often whilst being in the same political party.
+
+Additionally, the graph is directed and weighted, suggesting that certain nodes exert more influence than others. Notably, the user 227 may be an influencer, since many arrows go from it to other users.
+
+Furthermore, the graph is connected since, despite there probably being two communities, they are not isolated due to the frequency of arguments between members of opposing political parties. The exact nature of this connectivity remains partially unknown. We suspect that if certain nodes were to be isolated or clustered together, it would be noticed in the plot. Since we cannot be sure as this is simply a visual study, further analysis is needed to confirm these patterns.
+
+Lastly, this network contains both single and double edges, as two people can interact mutually on Twitter, such as in the case of the influence relation between nodes 285 and 390. One interesting feature of such double edges is that the weight is not necessarily symmetric, that is, the influence might be higher in direction than in the other, due to the fact that one user might retweet or quote-retweet a different user more than they are retweeted or quote-retweeted by them, which could be exemplified by a member of lower rank retweeting the leader of their political party.
+
+

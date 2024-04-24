@@ -1,0 +1,615 @@
+---
+title: "Assignment 3"
+author: "Nile Ansotegi, Lúa Arconada, Alejandro Macías"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Required libraries and data
+
+```{r, warning=FALSE, message=FALSE}
+library(igraph)
+library(chorddiag)
+set.seed(1234)
+```
+
+
+```{r}
+data = read.table("congress.edgelist", sep="", header=F,
+                  col.names=c("V1", "V2", "delete", "weight"))
+data = data[,-3]
+data$weight = gsub("}", '', data$weight)
+data$weight = as.numeric(data$weight)
+```
+
+```{r}
+data.attr = read.csv("gender-party.csv",sep=";", na.strings="")
+data.attr$Gender = factor(data.attr$Gender)
+data.attr$Party = factor(data.attr$Party)
+```
+
+```{r}
+g = igraph::graph_from_data_frame(data)
+# set vertex attributes
+g = set_vertex_attr(g, "name", value=data.attr$Name)
+g = set_vertex_attr(g, "gender", value=data.attr$Gender)
+g = set_vertex_attr(g, "affiliation", value=data.attr$Party)
+```
+
+
+
+## Simple graph layouts
+
+We can start by plotting the network at hand using some standard graph layouts. As our network is not small, these are not expected to work particularly well. Nonetheless, they might still be able to shed some light or bring some insights on the less-obvious features of the infleucne relations between US Congresspeople.
+
+
+The circle and star layouts are a good starting point. Instead of using the default star layout, which places the first vertex in the middle, it has been modified to place the vertex of highest degree in the center in an attempt to achieve a clearer visualization.
+
+```{r}
+par(mar=c(0,0,0,0)+.3, mfrow=c(1,2))
+plot(g, layout=layout_in_circle, 
+     vertex.label.cex=0.3,
+     main="Circular layout")
+plot(g, layout=layout_as_star(g,center=V(g)[which(degree(g)==max(degree(g)))]),
+     vertex.label.cex=0.3,
+     main="Star layout")
+```
+
+As was already warned, these layouts do not work particularly well for this network due to its high order and size. Furthermore, they seem to indicate that this is an extremely dense network, which as we saw in previous week through the study of the adjacency matrix is not quite the case.
+
+Next, the standard tree layout can be considered. 
+
+```{r}
+par(mar=c(0,0,0,0)+.3)
+plot(g, layout=layout_as_tree,
+     vertex.label.cex=0.3,
+     edge.arrow.size=0.1,
+     main="Tree layout")
+```
+
+Once again, we find a layout that is overwhelmed by the sheer amount of vertices and interactions between them. Unlike in previous layotus however, the tree layout does provide insight into the network's communities, with perhaps four main communities connected by certain vertices, and even some rather isolated members of US Congress.
+
+Finally, we can give the grid and sphere layouts a try. 
+
+```{r}
+par(mar=c(0,0,0,0)+.3, mfrow=c(1,2))
+plot(g, layout=layout_on_grid,
+     vertex.label.cex=0.3,
+     main="Grid layout")
+plot(g, layout=layout_on_sphere,
+     vertex.label.cex=0.3,
+     main="Sphere layout")
+```
+
+These layouts do not seem to be good options for the visualization of the network either.
+
+All in all, simple graph layouts seem to lack the sophistication required to represent a network of this size in a clear manner, although the tree layout does allow for the gathering of some possible insights into its structure.
+
+## Graph layouts based on energy functions
+
+Some more sophisticated layouts are those obtained my maximizing energy functions. The optimization process that leads to these visualization attempts to distribute vertices away from each other, keep edges short and minimize edge crossings, all while trying to keep vertices from coming too close to edges.
+
+Each vertex's position is calculated and stored with a matrix that can be fed later to the `plot.igraph` function. The matrices for all the different energy functions that will be studied in this report are calculated below:
+
+```{r,cache=TRUE}
+dh = layout_with_dh(g)
+fr = layout_with_fr(g)
+gem = layout_with_gem(g)
+graphopt = layout_with_graphopt(g)
+kk = layout_with_kk(g)
+```
+
+We start by studying the Davidson-Harel layout, based on a simulated annealing algorithm. 
+
+```{r,cache=TRUE}
+par(mar=c(0,0,0,0)+.3)
+plot(g, layout=dh,
+     vertex.label.cex=0.2, vertex.size=10,
+     main="Davidson-Harel layout")
+```
+
+The Davidson-Harel layout seems to indicate the existence of two main communities, although not very well separated due to some vertices acting as links between them.
+
+The next energy function studied is that of the Fruchterman-Reingold layout, a force-directed algorithm which uses an analogy of physical springs as edges that attract connected vertices toward each other, while keeping a repulsive force attempting to separate all vertices from one another.
+
+```{r,cache=TRUE}
+par(mar=c(0,0,0,0)+.3)
+plot(g, layout=fr,
+     vertex.label.cex=0.3, vertex.size=10,
+     main="Fruchterman-Reingold layout")
+```
+This algorithm does not a yield a very clear visualization of the network.
+
+The next algorithm to be studied is the GEM force-directed layout, which just like before uses an analogy of attractice and repulsive forces between vertices taking into account the edges.
+
+
+```{r,cache=TRUE}
+par(mar=c(0,0,0,0)+.3)
+plot(g, layout=gem,
+     vertex.label.cex=0.2, vertex.size=10,
+     main="GEM force-directed layout")
+```
+
+Although once again not a very clear plot, this layout allows to perhaps identify those vertices that are either mostly influencers or mostly influenced, since they seems to sit in the outer regions of the network. Notice however that said vertices seems to have smaller degrees.
+
+To end, another force directed algorithm is used, the Graphopt layout algorithm, as well as a different approach, the Kamada-Kawai layout algorithm.
+
+```{r,cache=TRUE}
+par(mar=c(0,0,0,0)+.3, mfrow=c(1,2))
+plot(g, layout=graphopt,
+     vertex.label.cex=0.2, vertex.size=10,
+     main="Graphopt layout")
+plot(g, layout=kk,
+     vertex.label.cex=0.2, vertex.size=10,
+     main="Kamada-Kawai layout")
+```
+
+
+## Graph layout based on Multidimensional Scaling
+
+The next and final layout that will be studied is the one based on the statistical technique known as Multidimensional Scaling. The idea behind this is the projection of points from a higher dimensional space onto a plane, while trying to keep the distance between points as faithfully as possible.
+
+```{r,cache=TRUE}
+mds = layout_with_mds(g)
+```
+
+
+```{r,cache=TRUE}
+par(mar=c(0,0,0,0)+.3)
+plot(g, layout=mds,
+     vertex.label.cex=0.2, vertex.size=10,
+     main="Multidimensional Scaling layout")
+```
+In this layout we observe what could seem like two main communities which are not fully separated, as well as perhaps a third or even forth one. Furthermore, we also observe some vertices that interact less with the rest.
+
+## Best graph layout
+
+Since it has been able to represent together features that were observed separately in other layouts, Multidimensional Scaling (MDS) has been considered the best layout. Nonetheless, the standard MDS layout is not clear enough, as so we will now attempt to obtain a clearer visualization of our network by modifying features of the vertices and edges such as size, width or color, guided by the attributes of the network.
+
+We can start by adding colors to the plot. The color of the vertices will represent the Congressperson's political affiliation.
+
+```{r,cache=TRUE}
+plot(g, layout=mds,
+     vertex.label.cex=0.2, vertex.size=10,
+     edge.width=0.2,
+     edge.arrow.size=0.5, edge.arrow.width=0.5)
+```
+
+
+```{r,cache=TRUE}
+par(mar=c(0,0,0,0)+.3)
+
+V(g)[affiliation=="Republican"]$color = "red"
+V(g)[affiliation=="Democratic"]$color = "blue"
+V(g)[affiliation=="Independent"]$color = "green"
+
+plot(g, layout=mds,
+     vertex.label.cex=0.2, vertex.size=10)
+```
+Next, the size of the vertices can be modified according to their degree, so that more important Congresspeople are represented by bigger vertices.
+
+```{r,cache=TRUE}
+par(mar=c(0,0,0,0)+.3)
+V(g)$size = 1.5*log(degree(g))+5
+
+plot(g, layout=mds,
+     vertex.label.cex=0.2)
+```
+The edges of the network can also be modified, so that their width and size in general agrees with their weight attribute. Since the influence values are generally much smaller than 1 (default value for `edge.size`), the edge width in reality has been taking as their MinMax-scaled values. Unfortunately, this 
+
+```{r,cache=TRUE}
+par(mar=c(0,0,0,0)+.3)
+#(g)$width = (E(g)$weight - min(E(g)$weight)) / (max(E(g)$weight) - min(E(g)$weight))
+
+plot(g, layout=mds,
+     vertex.label.cex=0.2,
+     edge.arrow.size=0.5, edge.arrow.width=0.5)
+```
+
+Finally, color can also be added to the edges, so that they match the colors of the political affiliation whenever the edge in question joins two members of the same political party, and are grey otherwise. 
+
+```{r,cache=TRUE}
+par(mar=c(0,0,0,0)+.3)
+
+reps = V(g)[affiliation=="Republican"]
+dems = V(g)[affiliation=="Democratic"]
+inds = V(g)[affiliation=="Independent"]
+
+E(g)$color = "black"
+E(g)[reps %--% reps]$color = "darkred"
+E(g)[dems %--% dems]$color = "darkblue"
+E(g)[inds %--% inds]$color = "darkgreen"
+
+plot(g, layout=mds,
+     vertex.label.cex=0.2,
+     edge.arrow.size=0.5, edge.arrow.width=0.5)
+```
+However, even after attempting several combinations of colors, this last step does not seem to lead a clearer visualization. 
+
+```{r,cache=TRUE}
+g = delete_edge_attr(g,"color")
+```
+
+
+The best visualization of the network considered is the following one:
+
+```{r,cache=TRUE}
+par(mar=c(0,0,0,0)+.3)
+
+plot(g, layout=mds,
+     vertex.label.cex=0.2,
+     edge.arrow.size=0.5, edge.arrow.width=0.5)
+```
+
+## Power law distribution
+
+### Degrees and their distributions in the non-weighted graph
+
+We compute the order of the graph and the degree sequence of the network and the average degree of the network.
+
+
+```{r}
+gorder(g)
+head(degree(g),n=30)
+mean(degree(g))
+```
+
+Now, we can have a look at the degree sequence of the network. We also compute the average degree of the network that is approximately 56. Therefore, in average, each congressperson has around 56 connections with other congresspeople. If we have a look at the degree distribution of the network, we conclude that the distribution is positively skewed. Indeed, the average degree is low compared with some of the degrees that can be as high as 123. 
+
+```{r}
+table(degree(g))
+```
+
+We take a look at the degree distribution and we plot it to better visualize it.
+
+```{r}
+head(degree_distribution(g),n=20)
+```
+
+```{r}
+color_1 <- "deepskyblue2"
+par(mar=c(5,4,4,2)+0.1)
+plot(0:max(degree(g)),degree_distribution(g),col=color_1,
+     main="Degree distribution",
+     xlab="Degree",ylab="Frequency",type="h",lwd=1.5)
+points(0:max(degree(g)),degree_distribution(g),pch=20)
+```
+We can see that it is right-skewed. The average we computed `r mean(degree(g))` is very low compared to some values that are as high as 250 and more.
+
+We check that the network is sparse. For that we obtain the ratio between the size of the network and the maximum number of edges that might exist. Given $V$, the number of vertices, the maximum number of edges is 
+$$ \frac{V(V-1)}{2}$$
+```{r}
+ecount(g)
+vcount(g)*(vcount(g)-1)/2
+```
+
+```{r}
+ecount(g)/(vcount(g)*(vcount(g)-1)/2)
+```
+
+The ratio is given by $0.118$, meaning only that $11.8%$ of the potential edges already exist.
+
+Consequently, we plot the degree distribution in log scale, i.e., plot log of the degrees vs log of the probabilities (relative frequencies). Ideally, we would have a plot that shows a linear relationship between the log-frequency and the log-degree, so that we can fit a linear regression afterwards. 
+
+Note that, for plotting in log scale, it is necessary to plot only those log-degrees and log-probabilities corresponding to degrees and probabilities larger than 0. Therefore the first step is to locate such probabilities. Then, we can make the plot in log-scale. 
+
+```{r}
+degree_dis <- degree_distribution(g)
+max_degree <- max(degree(g))
+degree_dis_positive <- which(degree_dis!=0)
+```
+
+```{r}
+plot(degree_dis_positive-1,degree_dis[degree_dis_positive],log="xy",
+     col=color_1,main="Log-log degree distribution",
+     xlab="Log-Degree",ylab="Log-Frequency",pch=19)
+```
+As we can observe, we corrected right-skewness. However, this is clearly non-linear, makes no sense to fit a linear regression. Instead of using this degree distribution we will try with in-degree and out-degree distributions and check that a linear regression is more adequate in the latter distributions.
+```{r}
+in_degree_distribution <- degree(g, mode = "in", loops = FALSE)
+out_degree_distribution <- degree(g, mode = "out", loops = FALSE)
+```
+
+```{r}
+color_1 <- "deepskyblue2"
+par(mar=c(5,4,4,2)+0.1)
+plot(0:max(degree(g, mode="in")),degree_distribution(g, mode="in"),col=color_1,
+     main="In-Degree distribution",
+     xlab="Degree",ylab="Frequency",type="h",lwd=1.5)
+points(0:max(degree(g,mode="in")),degree_distribution(g,mode="in"),pch=20)
+```
+
+```{r}
+color_1 <- "deepskyblue2"
+par(mar=c(5,4,4,2)+0.1)
+plot(0:max(degree(g, mode="out")),degree_distribution(g, mode="out"),col=color_1,
+     main="Out-Degree distribution",
+     xlab="Degree",ylab="Frequency",type="h",lwd=1.5)
+points(0:max(degree(g,mode="out")),degree_distribution(g,mode="out"),pch=20)
+```
+Again both in-degree and out-degree distributions are right skewed, showing even more extreme skewness in the out-degree distribution.
+
+```{r}
+degree_dis_in <- degree_distribution(g,mode="in")
+max_degree_in <- max(degree(g,mode="in"))
+degree_dis_positive_in <- which(degree_dis_in!=0)
+```
+
+```{r}
+degree_dis_out <- degree_distribution(g,mode="out")
+max_degree_out <- max(degree(g,mode="out"))
+degree_dis_positive_out <- which(degree_dis_out!=0)
+```
+
+```{r}
+plot(degree_dis_positive_in-1,degree_dis_in[degree_dis_positive_in],log="xy",
+     col=color_1,main="Log-log IN-degree distribution",
+     xlab="Log-Degree",ylab="Log-Frequency",pch=19)
+```
+Once that we have corrected skewness, we can fit a power-law to the log-degree distribution. For that, we estimate a linear regression model by Weigthed Least Squares (WLS). For that, first, we estimate a linear regression by Ordinary Least Squares (OLS). 
+
+Note that the first two values could be considered as outliers, having a large effect in the fitting, so we eliminate them. 
+
+```{r}
+plot(degree_dis_positive_in[-c(1,2,3)] - 1, degree_dis_in[degree_dis_positive_in][-c(1,2,3)], log="xy",
+     col=color_1, main="Log-log IN-degree distribution",
+     xlab="Log-Degree", ylab="Log-Frequency", pch=19)
+```
+```{r}
+log_deg_dist_in <- log(degree_dis_in[degree_dis_positive_in])[c(-1,-2,-3)]
+log_deg_in <- log(degree_dis_positive_in-1)[c(-1,-2,-3)]
+first_fit_in <- lm(log_deg_dist_in~log_deg_in)
+summary(first_fit_in)
+```
+```{r}
+second_fit_in <- lm(log_deg_dist_in~log_deg_in,weights=1/first_fit_in$fitted.values^2)
+summary(second_fit_in)
+```
+
+The obtained fitting is $\widehat{\log(p_d)}=-1.50779-0.93294\log(d)$. The coefficient of determination is $R^2=0.6311$. Secondly, we estimate the variances of the errors and then carry out WLS that lead to the fitted model $\widehat{\log(p_d)}=-2.25816-0.72040\log(d)$ with coefficient of determination $R^2=0.5667$ (worse than before). The estimated slope $\hat{\alpha}=-0.72040$.
+indicating a moderate decrease, which appears to confirm that while most vertices have small degrees, a few vertices have larger degrees, although not extraordinarily large. Finally, we add the regression line to the plot.
+
+```{r}
+color_2 <- "indianred2"
+plot(log_deg_in,log_deg_dist_in,
+     col=color_1,main="Log-log in-degree distribution",
+     xlab="Log-Degree",ylab="Log-Frequency",pch=19)
+abline(first_fit_in$coefficients[1],first_fit_in$coefficients[2],col=color_2,lwd=2)
+```
+We now do the same for the out-degree distribution. 
+```{r}
+plot(degree_dis_positive_out-1,degree_dis_out[degree_dis_positive_out],log="xy",
+     col=color_1,main="Log-log OUT-degree distribution",
+     xlab="Log-Degree",ylab="Log-Frequency",pch=19)
+```
+
+```{r}
+plot(degree_dis_positive_out[-c(1,2)] - 1, degree_dis_out[degree_dis_positive_out][-c(1,2)], log="xy",
+     col=color_1, main="Log-log OUT-degree distribution",
+     xlab="Log-Degree", ylab="Log-Frequency", pch=19)
+```
+
+```{r}
+log_deg_dist_out <- log(degree_dis_out[degree_dis_positive_out])[c(-1,-2)]
+log_deg_out <- log(degree_dis_positive_out-1)[c(-1,-2)]
+first_fit_out <- lm(log_deg_dist_out~log_deg_out)
+summary(first_fit_out)
+```
+With ordinary least squares, we obtain a fitting $\widehat{\log p_d}=-1.8099+-0.8266\log(d)$ for the out-degree distribution. The coefficient of determination is $R^2=0.4054$. This is not a very good result, but in light of the non-linearity of our data, it was something we could expect. 
+```{r}
+second_fit_out <- lm(log_deg_dist_out~log_deg_out,weights=1/first_fit_out$fitted.values^2)
+summary(second_fit_out)
+```
+Weighted least squares gives us the fit $\widehat{\log p_d}=-2.8091-0.5371\log(d)$. The coefficient of determination is even worse, $R^2=0.2336$. The estimated slope is $\hat{\alpha}=-0.5371$, which again is a sensible result due to the sparse nature of the network.  
+
+We fit the regression line to the plot.
+
+```{r}
+color_2 <- "indianred2"
+plot(log_deg_out,log_deg_dist_out,
+     col=color_1,main="Log-log out-degree distribution",
+     xlab="Log-Degree",ylab="Log-Frequency",pch=19)
+abline(first_fit_out$coefficients[1],first_fit_out$coefficients[2],col=color_2,lwd=2)
+```
+
+### Degrees and their distributions in the weighted graph
+
+We now do this again, but taking into account the weights in the edges of our graph. Firstly, we compute the weighted degree sequence of the network, as well as the average weighted degree of the network. The strength of a vertex in a graph is defined as the sum of weights of its incident edges.
+
+```{r}
+head(strength(g))
+```
+
+```{r}
+mean(strength(g))
+```
+
+The average weighted degree of the network is 0.3252, which indicates that on average, a congressperson has around 0.32 weighted influence via twitter on the rest of the congresspeople.
+
+```{r}
+head(table(strength(g)), n = 20)
+```
+
+In particular, the weighted degree distribution of our network is positively skewed. Indeed, the average weighted degree (`r mean(strength(g))`) is low compared with some of the weighted degrees that can be as high as `r max(strength(g))`.
+
+To compute the weighted degree distribution, we have to write a function we used in class called `graph.strength.distribution` to do it because igraph does not have a function to compute such distribution.
+
+```{r}
+graph.strength.distribution <- function (graph, cumulative = FALSE, ...)
+{
+  if (!is_igraph(graph)) {
+    stop("Not a graph object")
+  }
+  cs <- strength(graph, ...)
+  breaks <- seq(min(cs), max(cs), length.out = length(cs) + 1)
+  hi <- hist(cs, breaks = breaks ,plot=FALSE)$density
+  if (!cumulative) {
+    res <- hi
+  }
+  else {
+    res <- rev(cumsum(rev(hi)))
+  }
+  res
+}
+```
+
+The function begins by validating the input to ensure it's a valid `igraph` object. If the input isn't valid, the function stops with an error message.
+
+Next, the function calculates the strength of each vertex in the graph and stores it in a variable called `cs`. It then computes the density of the strength values by creating a histogram without plotting it. The breaks for the histogram are determined based on the minimum and maximum strength values in `cs`.
+
+Depending on the `cumulative` argument, the function either returns the computed density values directly or calculates the cumulative distribution of the strength values using the `cumsum` function. If `cumulative` is set to `TRUE`, the function reverses the order of the density values before calculating the cumulative sum to ensure the correct cumulative distribution is obtained.
+
+Finally, the function returns the computed result, which is either the density values or the cumulative distribution of the strength values, based on the `cumulative` argument.
+
+We use it in our weighted graph.
+
+```{r}
+weighted_degree_dis <- graph.strength.distribution(g) 
+head(weighted_degree_dis, n = 50)
+```
+ 
+We obtain and store the maximum degree to use it later in the plotting of the distribution. 
+
+```{r}
+max_weighted_degree <- max(strength(g))
+max_weighted_degree
+```
+
+Now we can obtain our plot.
+
+```{r}
+par(mar=c(5,4,4,2)+0.1)
+plot(seq(0, max_weighted_degree, length.out = length(weighted_degree_dis)), weighted_degree_dis,col=color_1,
+     main="Weighted degree distribution of US Congress Network",
+     xlab="Weighted degree",ylab="Frequency",type="h",lwd=1.5)
+points(seq(0, max_weighted_degree, length.out = length(weighted_degree_dis)), weighted_degree_dis, pch=20)
+```
+
+We can see that it is right-skewed. Consequently, we plot the weighted degree distribution in log scale, i.e., plot log of the weighted degrees vs log of the probabilities (relative frequencies). As before, we plot only those log-weighted-degrees and log-probabilities corresponding to weighted degrees and probabilities larger than 0, which we obtain previously.
+
+```{r}
+weighted_degree_dis_positive <- which(weighted_degree_dis!=0)
+weighted_degree_dis_positive
+```
+
+```{r}
+plot(weighted_degree_dis_positive,
+     weighted_degree_dis[weighted_degree_dis_positive],
+     log="xy",col=color_1,main="Log-log weighted degree distribution of US Congress Network",
+     xlab="Log-Weighted-Degree",ylab="Log-Frequency",pch=19,lwd=1.5)
+```
+
+The result is that we can see several vertices are of low degree, while another set of vertices are of higher degree. Therefore, the differences are not so large as in the unweighted case and do not follow a linear model either. We separate in the in-degree and out-degree distributions.
+
+```{r}
+in_degree_weighted_dis <- graph.strength.distribution(g, mode = "in")
+out_degree_weighted_dis <- graph.strength.distribution(g, mode = "out")
+```
+
+```{r}
+par(mar=c(5,4,4,2)+0.1)
+plot(seq(0, max(in_degree_weighted_dis), length.out = length(in_degree_weighted_dis)), degree(g, mode = "in"), col=color_1,
+     main="In-degree distribution of US Congress Network",
+     xlab="In-degree", ylab="Frequency", type="h", lwd=1.5)
+points(seq(0, max(in_degree_weighted_dis), length.out = length(in_degree_weighted_dis)), degree(g, mode = "in"), pch=20)
+```
+
+```{r}
+par(mar=c(5,4,4,2)+0.1)
+plot(seq(0, max(out_degree_weighted_dis), length.out = length(out_degree_weighted_dis)), degree(g, mode = "out"), col=color_1,
+     main="Out-degree distribution of US Congress Network",
+     xlab="Out-degree", ylab="Frequency", type="h", lwd=1.5)
+points(seq(0, max(out_degree_weighted_dis), length.out = length(out_degree_weighted_dis)), degree(g, mode = "out"), pch=20)
+```
+We can see that neither are skewed. Consequently, we plot the weighted degree distribution in log scale, i.e., plot log of the weighted degrees vs log of the probabilities (relative frequencies). As before, we plot only those log-weighted-degrees and log-probabilities corresponding to weighted degrees and probabilities larger than 0, in this case, for both in and our edges.
+
+```{r}
+weighted_degree_dis_positive_in <- which(in_degree_weighted_dis!=0)
+weighted_degree_dis_positive_in
+```
+
+```{r}
+weighted_degree_dis_positive_out <- which(out_degree_weighted_dis!=0)
+weighted_degree_dis_positive_out
+```
+
+```{r}
+plot(weighted_degree_dis_positive_in,
+     in_degree_weighted_dis[weighted_degree_dis_positive_in],
+     log="xy",col=color_1,main="Log-log in-weighted degree distribution of US Congress Network",
+     xlab="Log-in-Weighted-Degree",ylab="Log-Frequency",pch=19,lwd=1.5)
+```
+
+Ww eliminate the first four observations to improve linearity.
+
+```{r}
+plot(weighted_degree_dis_positive_in[-c(1,2,3,4)],
+     in_degree_weighted_dis[weighted_degree_dis_positive_in][-c(1,2,3,4)],
+     log="xy",col=color_1,main="Log-log in-weighted degree distribution of US Congress Network",
+     xlab="Log-in-Weighted-Degree",ylab="Log-Frequency",pch=19,lwd=1.5)
+```
+
+
+
+```{r}
+plot(weighted_degree_dis_positive_out,
+     out_degree_weighted_dis[weighted_degree_dis_positive_out],
+     log="xy",col=color_1,main="Log-log out-weighted degree distribution of US Congress Network",
+     xlab="Log-out-Weighted-Degree",ylab="Log-Frequency",pch=19,lwd=1.5)
+```
+
+We fit the linear regressions.
+
+```{r}
+log_weighted_deg_dist_in <- log(in_degree_weighted_dis[weighted_degree_dis_positive_in])[-c(1,2,3,4)]
+log_weighted_deg_in <- log(weighted_degree_dis_positive_in)[-c(1,2,3,4)]
+first_fit_w_in <- lm(log_weighted_deg_dist_in~log_weighted_deg_in)
+summary(first_fit_w_in)
+```
+
+```{r}
+plot(log_weighted_deg_in,log_weighted_deg_dist_in,
+     col=color_1,main="Log-log in-weighted degree distribution of US Congress network",
+     xlab="First Log-in-Weighted-Degree",ylab="Log-Frequency",pch=19)
+abline(first_fit_w_in$coefficients[1],first_fit_w_in$coefficients[2],col=color_2,lwd=2)
+```
+
+```{r}
+log_weighted_deg_dist_out <- log(out_degree_weighted_dis[weighted_degree_dis_positive_out])
+log_weighted_deg_out <- log(weighted_degree_dis_positive_out)
+first_fit_w_out <- lm(log_weighted_deg_dist_out~log_weighted_deg_out)
+summary(first_fit_w_out)
+```
+
+```{r}
+plot(log_weighted_deg_out,log_weighted_deg_dist_out,
+     col=color_1,main="Log-log out-weighted degree distribution of US Congress network",
+     xlab="Log-out-Weighted-Degree",ylab="Log-Frequency",pch=19)
+abline(first_fit_w_out$coefficients[1],first_fit_w_out$coefficients[2],col=color_2,lwd=2)
+```
+
+### Conclusions
+
+The in-degree distribution of our graph provides valuable insights into its structure, especially when considering weighted edges. Our weighted in-degree distribution captures the importance or significance of nodes based on the sum of weights of incoming edges, providing a nuanced understanding of node centrality in the network.
+
+On the other hand, the out-degree distribution's behavior with weighted edges is different. The linear regression for the out-degree distribution does not fit the data as well when considering weights. This discrepancy could arise due to various reasons. For instance, the weights might introduce noise or the way weights are assigned could influence the distribution differently than simple counts of outgoing edges.
+
+In summary, while our weighted in-degree distribution offers a richer understanding of a network's structure, the linear regression of our weighted out-degree distribution does not provide a better fit compared to its unweighted counterparts. This highlights the importance of carefully considering the nature and implications of edge weights when analyzing graph structures.
+
+
+
+
+
+
+
+
+
+
+
+
+
+

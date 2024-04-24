@@ -1,0 +1,509 @@
+---
+title: "Assignment 2"
+author: "Lúa Arconada Manteca"
+date: "2024-04-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE}
+library(igraph)
+set.seed(1234)
+```
+
+## Assignment 2
+
+Last week data (weights)
+
+```{r}
+data = read.table("congress_network/congress_network/congress.edgelist", sep="", header=F,
+                  col.names=c("V1", "V2", "delete", "weight"))
+data = data[,-3]
+data$weight = gsub("}", '', data$weight)
+data$weight = as.numeric(data$weight)
+```
+
+```{r}
+data.attr = read.csv("gender-party.csv",sep=";", na.strings="")
+data.attr$Gender = factor(data.attr$Gender)
+data.attr$Party = factor(data.attr$Party)
+```
+
+```{r}
+g = igraph::graph_from_data_frame(data)
+# set vertex attributes
+g = set_vertex_attr(g, "name", value=data.attr$Name)
+g = set_vertex_attr(g, "gender", value=data.attr$Gender)
+g = set_vertex_attr(g, "affiliation", value=data.attr$Party)
+```
+
+### 1. Summarize the main characteristics of the network including whether the network is directed or undirected, if there are subnetworks that may be of interest, if there are loops and/or multi-edges, etc.
+
+We can take a quick look at the `igraph` object, as well as visualize the graph with a basic plot:
+
+```{r}
+par(mar=c(0,0,0,0)+.3)
+plot(g, vertex.size=10, vertex.label.cex=0.3, edge.labels=data$weight, edge.arrow.size=0.5)
+```
+```{r}
+summary(g)
+```
+The graph's vertices are labeled with the name of the Congressperson that they represent. Besides said names, each vertex contains two attributes, representing person's gender and their political affiliation. The graph's edges contain the `weight` attribute, which represents the strength of the influence exerted by one Congressperson on another.
+
+we can modify the plot in order to better visualize the different attributes, starting with `gender`.
+
+```{r}
+par(mar=c(0,0,0,0)+.3)
+# Create a vector of colors based on gender
+gender_colors <- ifelse(V(g)$gender == "Male", "lightblue", "pink") 
+
+plot(g, vertex.color=gender_colors,
+     vertex.label=NA,
+     vertex.size=10, 
+     vertex.label.cex=0.25, 
+     edge.labels=data$weight, 
+     edge.arrow.size=0.5)
+
+legend('topleft', 
+       legend=levels(data.attr$Gender), 
+       pch=21,
+       pt.bg=c( "pink", "lightblue")
+       )
+```
+The same process can be repeated for `affiliation`.
+
+```{r}
+par(mar=c(0,0,0,0)+.3)
+# Create a vector of colors based on gender
+party_colors <- ifelse(V(g)$affiliation == "Republican","darkred",
+                       ifelse(V(g)$affiliation=="Democratic","darkblue","darkgreen"))
+
+plot(g, 
+     vertex.color = party_colors,
+     vertex.label=NA,
+     vertex.size=10, 
+     vertex.label.cex=0.25, 
+     edge.labels=data$weight,
+     edge.arrow.size=0.5)
+
+legend('topleft', 
+       legend=levels(data.attr$Party), 
+       pch=21,
+       pt.bg=c("blue", "darkgreen", "red")
+       )
+
+```
+
+Due to the definition itself of the network, it is expected to be directed and to lack both multiple edges and loops. Nonetheless, this can be checked computationally.
+
+Firstly, we simply check if it is directed.
+
+```{r}
+is_directed(g)
+```
+Secondly, the existence (or lack thereof) of loops can be verified:
+
+```{r}
+any_loop(g)
+```
+
+The final verification consists of checking whether the graph contains multiple edges. In a directed graph, this is defined as having several arrows pointing in the same direction, and so edges between the same vertices but in opposite directions do not count as such.
+
+```{r}
+any_multiple(g)
+```
+Since the graph does not contain loops nor multiple edges, we are dealing with a directed simple graph.
+
+
+As far as subnetworks are concerned, it might be interesting to study more in depth those induced by the different vertex attributes.
+We can start by visualizing the three distinct subnetworks induced by the political affiliation:
+
+```{r}
+republicans <- which(V(g)$affiliation=="Republican")
+g.rep <- induced_subgraph(g,republicans)
+
+democrats <- which(V(g)$affiliation=="Democratic")
+g.dem <- induced_subgraph(g,democrats)
+
+independents <- which(V(g)$affiliation=="Independent")
+g.ind <- induced_subgraph(g,independents)
+
+par(mar=c(0,0,0,0)+.3, mfrow=c(1,3))
+
+plot.igraph(g.rep,
+            vertex.label=NA,
+            vertex.size=10, 
+            vertex.label.cex=0.25,
+            main="Induced subgraph of Republicans",
+            vertex.color="darkred")
+
+plot.igraph(g.dem,
+            vertex.label=NA,
+            vertex.size=10, 
+            vertex.label.cex=0.25,
+            main="Induced subgraph of Democrats",
+            vertex.color="darkblue")
+
+plot.igraph(g.ind,
+            vertex.label=NA,
+            vertex.size=10, 
+            vertex.label.cex=0.25,
+            main="Induced subgraph of Independents",
+            vertex.color="darkgreen")
+```
+
+Perhaps, it could also be interesting to study the subnetworks induced by the gender of the Congresspeople, which take the following aspects:
+
+```{r}
+women <- which(V(g)$gender=="Female")
+g.w <- induced_subgraph(g,women)
+
+men <- which(V(g)$gender=="Male")
+g.m <- induced_subgraph(g,men)
+
+par(mar=c(0,0,0,0)+.3, mfrow=c(1,2))
+
+plot.igraph(g.w,
+            vertex.label=NA,
+            vertex.size=10, 
+            vertex.label.cex=0.25,
+            main="Induced subgraph of Women",
+            vertex.color="pink")
+
+plot.igraph(g.m,
+            vertex.label=NA,
+            vertex.size=10, 
+            vertex.label.cex=0.25,
+            main="Induced subgraph of Men",
+            vertex.color="lightblue")
+```
+
+### 2. Compute the order and size of the network and certain induced subnetworks of interest and draw conclusions about these values.
+
+The order and size of the main graph are:
+
+```{r}
+vcount(g)  # Number of vertices (order)
+ecount(g)  # Number of edges (size)
+```
+We can also compute these values for the distinct subnetworks mentioned in the previous section.
+
+Starting with the subnetworks induced by gender:
+
+```{r}
+print("Men's subnetwork")
+print(paste("Order:",vcount(g.m)))
+print(paste("Size:",ecount(g.m)))
+
+print("")
+
+print("Women's subnetwork")
+print(paste("Order:",vcount(g.w)))
+print(paste("Size:",ecount(g.w)))
+```
+The female politician's subnetwork contains only about 30% of the total number of nodes, indicating a notable gender inequality in the representation at the US Congress level. Furthermore, These Congresswomen interact with (and so are less influenced by, according to the metric in the study) one another much less than men do. It is also interesting to note that this indicates that there must be more than 5000 edges joining the two subnetworks, meaning that the influence an individual exerts, as well as the influences they receive, are not contained to those of their own gender.
+
+Now, moving onto the subnetworks induced by political affiliation, ignoring the subnetwork of independent politicians due to its simplicity:
+
+```{r}
+print("Republican's subnetwork")
+print(paste("Order:",vcount(g.rep)))
+print(paste("Size:",ecount(g.rep)))
+
+print("")
+
+print("Democrat's subnetwork")
+print(paste("Order:",vcount(g.dem)))
+print(paste("Size:",ecount(g.dem)))
+```
+As opposed to the previous case, these subnetworks seems much more balanced, having quite similar values for both order and size. In fact, the most interesting feature of these subnetworks is not found in what they contain, but rather in what the lack: the total edges contained in both of them account only for slightly less than half of the number of edges of the main network. This indicates that there is a very high level of interaction, and so of influence, between members of opposing political parties in the US Congress. 
+
+### 3. Obtain the degree distribution with and without weights (if any) and comment on the results obtained. If the network is directed, consider the in, out and total degrees. Are relevant conclusions about the relationship structure of the network derived from these results?
+
+Now, the degree distribution of the graph and some subnetworks of interest will be studied.
+
+Starting with the degree distribution without taking into account the weights, we can begin by checking that the sum of all the vertices' degrees is equal to twice the size of the graph:
+
+
+```{r}
+sum(degree(g)) == 2*gsize(g) #2*size
+```
+
+Now, we can compute and visualize the total degree distribution of the network:
+
+```{r}
+# Calculate total degrees (sum of in-degree and out-degree for undirected graphs)
+degrees <- degree(g, mode = "total")
+
+# Plot degree distribution
+hist(degrees, breaks = 30, main = "Degree Distribution",
+     xlab = "Degree", ylab = "Frequency", freq=F, col="lightblue")
+lines(density(degrees),col="darkred", lwd=2.5)
+```
+
+We can now compute some important statistics of the total degree distribution.
+
+```{r}
+min(degrees)
+mean(degrees)
+median(degrees)
+max(degrees)
+```
+We can see both in the histogram and in the statistics that the distribution presents a strong right-skewness, with very few (although present) individuals influencing numerous Congresspeople and a peak at around 40.
+
+
+Now, we can compute the degree distribution taking into account the weights. In this case, a large weight implies a very close relationship between two members of the network, which is exactly what interests us.
+
+```{r, warning = FALSE}
+# Compute weighted degree manually by summing edge weights
+weighted_degree <- function(graph) {
+  degree_vector <- degree(graph, mode = "total", loops = FALSE)
+  weighted_degree_vector <- sapply(V(graph), function(v) sum(E(graph)[inc(v)]$weight))
+  return(weighted_degree_vector)
+}
+
+# Calculate weighted degree distribution
+weighted_degree_distribution <- weighted_degree(g)
+
+# Plot weighted degree distribution
+hist(weighted_degree_distribution, breaks = 20, main = "Degree Distribution (with weights)",
+     xlab = "Weighted Degree", ylab = "Frequency", freq=F, col="lightblue")
+lines(density(weighted_degree_distribution), lwd=2, col="darkred")
+```
+```{r}
+min(strength(g))
+median(strength(g))
+mean(strength(g))
+max(strength(g))
+```
+Once again, the distribution is very right-skewed, with very few extremely highly influential individuals.
+
+So far, only the total degree has been considered. However, since we are dealing with a directed network, the in and out degrees can also be considered separately.
+
+```{r}
+in_degree_distribution <- degree(g, mode = "in", loops = FALSE)
+out_degree_distribution <- degree(g, mode = "out", loops = FALSE)
+  
+par(mfrow=c(1,2))
+# Plot in-degree distribution
+hist(in_degree_distribution, breaks = 20, main = "In-Degree Distribution",
+       xlab = "In-Degree", ylab = "Frequency", col="lightblue", freq=F)
+lines(density(in_degree_distribution), lwd=2.5, col="darkred")
+  
+# Plot out-degree distribution
+hist(out_degree_distribution, breaks = 20, main = "Out-Degree Distribution",
+     xlab = "Out-Degree", ylab = "Frequency", col="lightblue", freq=F)
+lines(density(out_degree_distribution), lwd=2.5, col="darkred")
+```
+When comparing the in- and out- degree distributions, an interesting feature arises: the in-degree distribution is much more heavy-tailed than the out-degree distribution. This indicates that there are more politicians who are heavily-influenced than those who are big influencer, which make sense when taking account the hierarchical shape of most political parties, in which there are usually fewer highly ranked individuals and more lower ranked ones.
+
+### 4. Obtain the number of components of the network (weakly and strongly if the network is directed).
+
+A component of a graph is a subset of vertices and edges where every vertex is reachable from every other vertex within that subset, and no additional edges can be added without breaking this property of maximal connectivity. In a connected graph, there is only one component, encompassing all vertices, while in graphs with multiple components, each component represents a separate, maximally connected subgraph.
+
+We check whether the network is connected both strongly and weakly. 
+
+```{r}
+is_connected(g,mode="strong")
+is_connected(g,mode="weak")
+```
+
+It is only connected weakly. Then, the number of components is going to be 1 for the weakly connected network. For the strongly connected network, the number of components must be $>1$.
+
+```{r}
+length(components(g,mode="strong")$csize)
+```
+
+```{r}
+length(components(g,mode="weak")$csize)
+```
+Indeed, we have seven components for the strongly connected network and one for the weak one. 
+
+```{r}
+comp <- components(g, mode = "strong")
+comp$csize
+```
+Note that all the components except the last one have size 1. This means that we have 6 members that are not strongly connected to any other vertex, resulting in isolated vertices. After inspecting these 6 members, we don't see any particular common caharcteristic among them. 
+
+The strongly connected subgraph of our graph is plotted below. Note that this is going to look like the graph but with 6 less vertices. 
+
+```{r}
+subgraph_vertices <- V(g)[comp$membership == 7]
+subgraph <- induced_subgraph(g, subgraph_vertices)
+plot(subgraph,vertex.size=10, vertex.label.cex=0.3, edge.labels=data$weight, edge.arrow.size=0.5)
+```
+
+
+
+### 5. Compute the diameter with and without weights (if any) and determine the farthest vertices along with the path joining them. Consider whether the network is directed or not.
+
+The diameter represents the maximum geodesic distance in the network, which is the shortest path length between two vertices. It's a critical metric for understanding the overall connectivity and reachability within the network, often used to assess the efficiency of communication or transportation systems modeled by graphs.
+
+Furthermore, the weighted geodesic distance can be defined as the path with the
+minimum sum of edge weights. It is also possible to compute the weighted diameter, defined the same way as the diameter but with weighted geodesic distnace instead. 
+
+We first compute the diameter without taking into account the weights. For that we create another network where the weights are the same for all edges. 
+
+```{r}
+g_unweight<-g
+
+E(g_unweight)$weight <- 1
+
+get_diameter(g_unweight, directed = TRUE)
+```
+```{r}
+diameter(g_unweight, directed = TRUE)
+```
+```{r}
+get_diameter(g_unweight, directed = FALSE)
+```
+```{r}
+diameter(g_unweight, directed = FALSE)
+```
+Observe that the diameter is smaller for the undirected network. This makes sensedue to the lack to direction of the edges. 
+
+```{r}
+names<-get_diameter(g_unweight,directed=TRUE)
+vertex_names <- list()
+
+for (i in 1:length(names)) {
+  vertex_names[[i]] <- names[[i]]$name
+}
+
+vertex_indices <- V(g_unweight)$name %in% vertex_names
+
+subgraph <- induced_subgraph(g_unweight, vertex_indices)
+
+plot(subgraph,main="Directed")
+
+```
+```{r}
+names<-get_diameter(g_unweight,directed=FALSE)
+vertex_names <- list()
+
+for (i in 1:length(names)) {
+  vertex_names[[i]] <- names[[i]]$name
+}
+
+vertex_indices <- V(g_unweight)$name %in% vertex_names
+
+subgraph <- induced_subgraph(g_unweight, vertex_indices)
+
+plot(subgraph, main="Undirected")
+
+```
+
+However, for our network, it is more interesting to obtain the weighted diameter. 
+
+
+We calculate and analyze the diameter of the network considering both directed and undirected networks. 
+
+```{r}
+get_diameter(g,directed=TRUE)
+```
+
+These are the names of the vertices that give the shortest path in the directed network, with Gregorio Kilili Camacho being the first vertex and Frederica Wilson being the fifth. 
+
+```{r}
+diameter(g,directed=TRUE)
+```
+
+```{r}
+farthest_vertices(g,directed=TRUE)
+```
+
+We identify the names of the pair of vertices that are the endpoints of the longest shortest path in the directed network.
+
+```{r}
+V(g)$affiliation[get_diameter(g,directed=TRUE)]
+V(g)$gender[get_diameter(g,directed=TRUE)]
+```
+
+We see that they are no necessarily from the same political party nor the same gender.
+
+```{r}
+names<-get_diameter(g,directed=TRUE)
+vertex_names <- list()
+
+for (i in 1:length(names)) {
+  vertex_names[[i]] <- names[[i]]$name
+}
+
+vertex_indices <- V(g)$name %in% vertex_names
+
+subgraph <- induced_subgraph(g, vertex_indices)
+
+plot(subgraph,main="directed")
+
+```
+
+See that the path is not the same when we are working with the weighted geodesic distance. Now, we do the same for an undirected network. 
+
+```{r}
+get_diameter(g,directed=FALSE)
+```
+
+```{r}
+diameter(g,directed=FALSE)
+```
+
+```{r}
+farthest_vertices(g,directed=FALSE)
+```
+
+```{r}
+V(g)$affiliation[get_diameter(g,directed=FALSE)]
+V(g)$gender[get_diameter(g,directed=FALSE)]
+```
+
+```{r}
+names<-get_diameter(g,directed=FALSE)
+vertex_names <- list()
+
+for (i in 1:length(names)) {
+  vertex_names[[i]] <- names[[i]]$name
+}
+
+vertex_indices <- V(g)$name %in% vertex_names
+
+subgraph <- induced_subgraph(g, vertex_indices)
+
+plot(subgraph,main="undirected")
+
+```
+
+We see that the diameter is larger for the strong case. We could have expected this due to the fact that the longest geodesic distance is larger for this case than for the weak case.
+
+### 6. If size permits, present the adjacency matrix and determine whether based on that matrix the network contains many edges or not. That is, measure in a simple way the density of the network.
+
+In this last part, we wish to show the graph in a matrix form. For this purpose, we use the adjacency matrix, where intead of describing the graph with the edges, the adjacency matrix
+describes the relationships with ones and zeros.
+
+
+```{r}
+A = as_adjacency_matrix(g)
+print(A)
+```
+
+Our matrix is so big that is hard to interpret it. For this reason, we will be using a heatmap, so that we can have a better glimpse of what is happening with the edges. 
+
+```{r}
+heatmap(as.matrix(A), Rowv=NA, Colv=NA, labCol=NA, labRow=NA)
+```
+
+
+
+This matrix doesn't need to be symmetric, due to the fact that the network is directed. It looks like the number of edges is low, relative to all possible interactions between all vertices, suggesting a sparse graph.
+
+Weights can be taken into account when computing the adjacency matrix by replacing the elements in the adjacency matrix with the corresponding weights.
+
+```{r}
+heatmap(distances, Rowv=NA, Colv=NA, labCol=NA, labRow=NA)
+```
+
+We see that for some members, there are darker "vertical lines", which could suggest a bigger influence of the other members. Actually, it looks that there is a direct connection with the rest of the members or at least with most of them and also the weights of the edges is heavier. 
+
+

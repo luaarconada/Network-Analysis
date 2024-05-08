@@ -1,0 +1,581 @@
+---
+title: "Network analysis"
+subtitle: "Topic 4 - Models for network graphs"
+author: "Pedro Galeano - Máster in Statistics for Data Science - UC3M"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    toc: yes
+    toc_depth: 3
+    number_sections: yes
+    fig_width: 10.5
+    fig_height: 7.5
+    fig_caption: yes
+    df_print: paged
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE)
+```
+
+# Preliminary steps
+
+The first thing to do in the topic is to load the libraries `igraph` and `igraphdata`. The first one contains most of the functions that we are using for analyzing real networks, while the second contains the `karate` network.
+
+```{r, message=FALSE}
+library(igraph)
+library(igraphdata)
+```
+
+# Classical random graph models
+
+In this section, we will consider **classical random graph models** which are the simplest network models. Note that for simplicity we are considering simple graphs, i.e., undirected and with no loops or multi-edges. Next, we will generate several networks coming from the two most well known classical random graph models.
+
+## The Erdös and Rényi model
+
+For generating a network from the **Erdös and Rényi model**, we need to fix the order $N$, i.e., the number of vertices, and the size $L$, the number of edges. We fix $N=100$ and consider four sizes, $L=100$, $L=250$, $L=500$, and $L=1000$, for illustrating several situations. Therefore, for $N=100$ and each value of $L$, we generate a network and obtain their main characteristics. We fix the seed for having always the same generated networks.
+
+```{r }
+set.seed(10)
+N <- 100
+L_1 <- 100
+ER_1 <- sample_gnm(n=N,m=L_1)
+ER_1
+L_2 <- 250
+ER_2 <- sample_gnm(n=N,m=L_2)
+ER_2
+L_3 <- 500
+ER_3 <- sample_gnm(n=N,m=L_3)
+ER_3
+L_4 <- 1000
+ER_4 <- sample_gnm(n=N,m=L_4)
+ER_4
+```
+
+Next, we obtain a plot with **circular layout** of the four networks generated. Note how the larger the number of edges, the more dense the generated network, which is the expected result:
+
+```{r }
+color_1 <- "deepskyblue2"
+V(ER_1)$color <- V(ER_2)$color <- V(ER_3)$color <- V(ER_4)$color <- color_1
+par(mfrow=c(2,2))
+plot.igraph(ER_1,layout=layout_in_circle,
+            main="Erdös and Rényi network with L=100",
+            vertex.size=8,vertex.label.cex=0.6)
+plot.igraph(ER_2,layout=layout_in_circle,
+            main="Erdös and Rényi network with L=250",
+            vertex.size=8,vertex.label.cex=0.6)
+plot.igraph(ER_3,layout=layout_in_circle,
+            main="Erdös and Rényi network with L=500",
+            vertex.size=8,vertex.label.cex=0.6)
+plot.igraph(ER_4,layout=layout_in_circle,
+            main="Erdös and Rényi network with L=1000",
+            vertex.size=8,vertex.label.cex=0.6)
+```
+
+Also, we obtain a plot with **Davidson-Harel layout** of the four networks generated that confirms the results obtained in the previous plots:
+
+```{r }
+par(mfrow=c(2,2))
+plot.igraph(ER_1,layout=layout_with_dh,
+            main="Erdös and Rényi network with L=100",
+            vertex.size=8,vertex.label.cex=0.6)
+plot.igraph(ER_2,layout=layout_with_dh,mark.col=color_1,
+            main="Erdös and Rényi network with L=250",
+            vertex.size=8,vertex.label.cex=0.6)
+plot.igraph(ER_3,layout=layout_with_dh,mark.col=color_1,
+            main="Erdös and Rényi network with L=500",
+            vertex.size=8,vertex.label.cex=0.6)
+plot.igraph(ER_4,layout=layout_with_dh,mark.col=color_1,
+            main="Erdös and Rényi network with L=1000",
+            vertex.size=8,vertex.label.cex=0.6)
+```
+
+Now, we obtain the **degree distribution** of the generated networks. It is not difficult to see the differences between them. Indeed, the degree range is quite different, while the degrees of the larger networks are very large and concentrated in the left side of the plot.
+
+```{r }
+deg_ER_1 <- degree(ER_1)
+deg_dis_ER_1 <- degree_distribution(ER_1)
+par(mfrow=c(2,2))
+plot(0:max(deg_ER_1),deg_dis_ER_1,col=color_1,
+     main="Degree distribution of the first Erdös and Rényi network",
+     xlab="Degree",ylab="Frequency",type="h")
+points(0:max(deg_ER_1),deg_dis_ER_1,pch=20)
+deg_ER_2 <- degree(ER_2)
+deg_dis_ER_2 <- degree_distribution(ER_2)
+plot(0:max(deg_ER_2),deg_dis_ER_2,col=color_1,
+     main="Degree distribution of the second Erdös and Rényi network",
+     xlab="Degree",ylab="Frequency",type="h")
+points(0:max(deg_ER_2),deg_dis_ER_2,pch=20)
+deg_ER_3 <- degree(ER_3)
+deg_dis_ER_3 <- degree_distribution(ER_3)
+plot(0:max(deg_ER_3),deg_dis_ER_3,col=color_1,
+     main="Degree distribution of the thrid Erdös and Rényi network",
+     xlab="Degree",ylab="Frequency",type="h")
+points(0:max(deg_ER_3),deg_dis_ER_3,pch=20)
+deg_ER_4 <- degree(ER_4)
+deg_dis_ER_4 <- degree_distribution(ER_4)
+plot(0:max(deg_ER_4),deg_dis_ER_4,col=color_1,
+     main="Degree distribution of the fourth Erdös and Rényi network",
+     xlab="Degree",ylab="Frequency",type="h")
+points(0:max(deg_ER_4),deg_dis_ER_4,pch=20)
+```
+
+Moreover, we plot the degree distribution in log scale to see whether the log-frequency shows a fairly linear decay as a function of the log-degree. As can be seen, the plot shows that the relationships between the log-frequencies and the log-degrees are not linear.
+
+```{r }
+par(mfrow=c(2,2))
+plot(1:max(deg_ER_1),deg_dis_ER_1[-1],log="xy",col="deepskyblue2",
+     main="Log-log degree distribution of first Erdös and Rényi network",
+     xlab="log-Degree",ylab="log-Frequency",pch=19)
+plot(1:max(deg_ER_2),deg_dis_ER_2[-1],log="xy",col="deepskyblue2",
+     main="Log-log degree distribution of second Erdös and Rényi network",
+     xlab="log-Degree",ylab="log-Frequency",pch=19)
+plot(c(seq(5,16,by=1),19),deg_dis_ER_3[-c(1,2,3,4,17,18)],log="xy",col="deepskyblue2",
+     main="Log-log degree distribution of third Erdös and Rényi network",
+     xlab="log-Degree",ylab="log-Frequency",pch=19)
+plot(c(seq(12,29,by=1),33,37),deg_dis_ER_4[-c(1:11,30:32,34:36)],log="xy",col="deepskyblue2",
+     main="Log-log degree distribution of fourth Erdös and Rényi network",
+     xlab="log-Degree",ylab="log-Frequency",pch=19)
+```
+
+Finally, we obtain some of the main characteristics of a network including the **average path length**, the **diameter**, the **density**, the **clustering coefficient**, the **number of components** and the **size of the network components**. Again, all these results suggest that the larger $L$, the more dense is the network, as expected.
+
+```{r }
+c(mean_distance(ER_1),mean_distance(ER_2),mean_distance(ER_3),mean_distance(ER_4))
+c(diameter(ER_1),diameter(ER_2),diameter(ER_3),diameter(ER_4))
+c(edge_density(ER_1),edge_density(ER_2),edge_density(ER_3),edge_density(ER_4))
+c(transitivity(ER_1),transitivity(ER_2),transitivity(ER_3),transitivity(ER_4))
+components(ER_1)
+components(ER_2)
+components(ER_3)
+components(ER_4)
+```
+
+## The Gilbert model
+
+For generating a network from the **Gilbert model**, we need to fix the order $N$, i.e., the number of vertices, and the probability $p$ of generating an edge. As before, we fix $N=100$ and consider probabilities $p=\frac{2}{100}$, $p=\frac{5}{100}$, $p=\frac{10}{100}$, and $p=\frac{20}{100}$, respectively. Therefore, for $N=100$ and each value of $p$, we generate a network and obtain their main characteristics.
+
+```{r }
+set.seed(10)
+p <- 2/N
+G_1 <- sample_gnp(n=N,p=p)
+G_1
+p <- 5/N
+G_2 <- sample_gnp(n=N,p=p)
+G_2
+p <- 10/N
+G_3 <- sample_gnp(n=N,p=p)
+G_3
+p <- 20/N
+G_4 <- sample_gnp(n=N,p=p)
+G_4
+```
+
+Note that the number of edges are $L=110$, $L=246$, $L=491$, and $L=1045$, respectively, which are very close to the number of edges of the Erdös and Rényi model. Taking into account that $c=2$ for the first network, the condition imposed by the Gilbert network to generate networks with more than one component ($c<1$) leads to networks with a very low number of edges.
+
+Now, we obtain a plot with circular layout of the four networks generated. Note how the larger the probability of generating an edge, the more dense the generated network, which was the expected result:
+
+```{r }
+V(G_1)$color <- V(G_2)$color <- V(G_3)$color <- V(G_4)$color <- color_1
+par(mfrow=c(2,2))
+plot.igraph(G_1,layout=layout_in_circle,
+            main="Gilbert network with L=110",
+            vertex.size=8,vertex.label.cex=0.6)
+plot.igraph(G_2,layout=layout_in_circle,
+            main="Gilbert network with L=246",
+            vertex.size=8,vertex.label.cex=0.6)
+plot.igraph(G_3,layout=layout_in_circle,
+            main="Gilbert network with L=491",
+            vertex.size=8,vertex.label.cex=0.6)
+plot.igraph(G_4,layout=layout_in_circle,
+            main="Gilbert network with L=1045",
+            vertex.size=8,vertex.label.cex=0.6)
+```
+
+Also, we obtain a plot with Davidson-Harel layout of the four networks generated that confirms the results obtained in the previous plots:
+
+```{r }
+par(mfrow=c(2,2))
+plot.igraph(G_1,layout=layout_with_dh,
+            main="Gilbert network with L=110",
+            vertex.size=8,vertex.label.cex=0.6)
+plot.igraph(G_2,layout=layout_with_dh,
+            main="Gilbert network with L=246",
+            vertex.size=8,vertex.label.cex=0.6)
+plot.igraph(G_3,layout=layout_with_dh,
+            main="Gilbert network with L=491",
+            vertex.size=8,vertex.label.cex=0.6)
+plot.igraph(G_4,layout=layout_with_dh,
+            main="Gilbert network with L=1045",
+            vertex.size=8,vertex.label.cex=0.6)
+```
+
+Additionally, we obtain the degree distribution of the generated networks. It is not difficult to see that the degree distributions are not far from those corresponding Erdös and Rényi networks.
+
+```{r }
+deg_G_1 <- degree(G_1)
+deg_dis_G_1 <- degree_distribution(G_1)
+par(mfrow=c(2,2))
+plot(0:max(deg_G_1),deg_dis_G_1,col=color_1,
+     main="Degree distribution of the first Gilbert network",
+     xlab="Degree",ylab="Frequency",type="h")
+points(0:max(deg_G_1),deg_dis_G_1,pch=20)
+deg_G_2 <- degree(G_2)
+deg_dis_G_2 <- degree_distribution(G_2)
+plot(0:max(deg_G_2),deg_dis_G_2,col=color_1,
+     main="Degree distribution of the second Gilbert network",
+     xlab="Degree",ylab="Frequency",type="h")
+points(0:max(deg_G_2),deg_dis_G_2,pch=20)
+deg_G_3 <- degree(G_3)
+deg_dis_G_3 <- degree_distribution(G_3)
+plot(0:max(deg_G_3),deg_dis_G_3,col=color_1,
+     main="Degree distribution of the thrid Gilbert network",
+     xlab="Degree",ylab="Frequency",type="h")
+points(0:max(deg_G_3),deg_dis_G_3,pch=20)
+deg_G_4 <- degree(G_4)
+deg_dis_G_4 <- degree_distribution(G_4)
+plot(0:max(deg_G_4),deg_dis_G_4,col=color_1,
+     main="Degree distribution of the fourth Gilbert network",
+     xlab="Degree",ylab="Frequency",type="h")
+points(0:max(deg_G_4),deg_dis_G_4,pch=20)
+```
+
+Now, we plot the degree distribution in log scale to see whether the log-frequency shows a fairly linear decay as a function of the log-degree. As can be seen, the plot shows that the relationships between the log-frequencies and the log-degrees are not linear.
+
+```{r }
+par(mfrow=c(2,2))
+plot(1:max(deg_G_1),deg_dis_G_1[-1],log="xy",col="deepskyblue2",
+     main="Log-log degree distribution of first Gilbert network",
+     xlab="log-Degree",ylab="log-Frequency",pch=19)
+plot(1:max(deg_G_2),deg_dis_G_2[-1],log="xy",col="deepskyblue2",
+     main="Log-log degree distribution of second Gilbert network",
+     xlab="log-Degree",ylab="log-Frequency",pch=19)
+plot((4:19)[-c(13,15)],deg_dis_G_3[(4:19)[-c(13,15)]],log="xy",col="deepskyblue2",
+     main="Log-log degree distribution of third Gilbert network",
+     xlab="log-Degree",ylab="log-Frequency",pch=19)
+plot((14:35)[-c(20,21)],deg_dis_G_4[(14:35)[-c(20,21)]],log="xy",col="deepskyblue2",
+     main="Log-log degree distribution of fourth Gilbert network",
+     xlab="log-Degree",ylab="log-Frequency",pch=19)
+```
+
+Finally, as we did with the previous networks, we obtain the **average path length**, the **diameter**, the **density**, the **clustering coefficient**, the **number of components** and the **size of the network components**. All these results suggest that the larger $p$, the more dense is the network, as expected.
+
+```{r }
+c(mean_distance(G_1),mean_distance(G_2),mean_distance(G_3),mean_distance(G_4))
+c(diameter(G_1),diameter(G_2),diameter(G_3),diameter(G_4))
+c(edge_density(G_1),edge_density(G_2),edge_density(G_3),edge_density(G_4))
+c(transitivity(G_1),transitivity(G_2),transitivity(G_3),transitivity(G_4))
+components(G_1)
+components(G_2)
+components(G_3)
+components(G_4)
+```
+
+# Generalized random graph models
+
+Here, we will consider **generalized random graph models** which are more complex than the classical random graph models seen in the previous section. More precisely, we are going to generate a generalized random graph network with the same order than the **karate** network, i.e., $N=34$, and the same degree distribution of the karate network. Consequently, the size of the network is $L=78$.
+
+```{r }
+set.seed(10)
+data(karate)
+deg_karate <- degree(karate)
+G_karate <- sample_degseq(deg_karate,method="vl")
+G_karate
+```
+
+Note that the networks have $34$ and $78$ edges as the original ones. Next, we obtain a plot with circular and Davidson-Harel layouts of the two networks. Note how the networks are very close to the original ones, i.e., we generate networks different than the original ones but with the same degree sequence. Indeed, the two degree sequences are equal:
+
+```{r }
+V(G_karate)$color <- color_1
+par(mfrow=c(2,2))
+plot.igraph(karate,layout=layout_in_circle,
+            main="Karate network",
+            vertex.size=8,vertex.label.cex=0.6)
+plot.igraph(G_karate,layout=layout_in_circle,
+            main="Generated network",
+            vertex.size=8,vertex.label.cex=0.6)
+plot.igraph(karate,layout=layout_with_dh,
+            main="Karate network",
+            vertex.size=8,vertex.label.cex=0.6)
+plot.igraph(G_karate,layout=layout_with_dh,
+            main="Generated network",
+            vertex.size=8,vertex.label.cex=0.6)
+par(mfrow=c(1,2))
+deg_karate <- degree(karate)
+deg_dis_karate <- degree_distribution(karate)
+plot(0:max(deg_karate),deg_dis_karate,col=color_1,
+     main="Degree distribution of the karate network",
+     xlab="Degree",ylab="Frequency",type="h")
+points(0:max(deg_karate),deg_dis_karate,pch=20)
+deg_G_karate <- degree(G_karate)
+deg_dis_G_karate <- degree_distribution(G_karate)
+plot(0:max(deg_G_karate),deg_dis_G_karate,col=color_1,
+     main="Degree distribution of the generated network",
+     xlab="Degree",ylab="Frequency",type="h")
+points(0:max(deg_G_karate),deg_dis_G_karate,pch=20)
+```
+
+Next, we obtain some of the main characteristics of the two networks including the average path length, the diameter, the density, the clustering coefficient, the number of components and the size of the network components. It is possible to see the similarities between both networks.
+
+```{r }
+c(mean_distance(karate),mean_distance(G_karate))
+c(diameter(karate,weights=rep(1,78)),diameter(G_karate))
+c(edge_density(karate),edge_density(G_karate))
+c(transitivity(karate,weights=rep(1,78)),transitivity(G_karate))
+components(karate)
+components(G_karate)
+```
+
+## Assessing the number of communities in a network
+
+Here, we use the previous methods to generate networks for assessing the number of communities of the `karate` network. Then, following Topic 3, we run five community detection algorithms, i.e., **fast greedy**, **Louvain**, **label propagation**, **edge betweenness** and **walktrap** for the `karate` network. We do not consider **optimal modularity** because of its high computational cost to carry out the next steps of the analysis. For simplicity, we ignore weights. Then, we plot the solutions selected by each community detection procedure for the karate network:
+
+```{r }
+set.seed(10)
+options(warn=-1)
+karate_fg <- cluster_fast_greedy(karate,weights=rep(1,78))
+length(karate_fg)
+karate_lo <- cluster_louvain(karate,weights=rep(1,78))
+length(karate_lo)
+karate_lp <- cluster_label_prop(karate,initial=as.vector(membership(karate_lo)),
+                                weights=rep(1,78))
+length(karate_lp)
+karate_eb <- cluster_edge_betweenness(karate,directed=FALSE,weights=rep(1,78))
+length(karate_eb)
+karate_wa <- cluster_walktrap(karate,weights=rep(1,78))
+length(karate_wa)
+options(warn=0)
+par(mfrow=c(1,1))
+plot(karate_fg,karate,main="Karate network with fast greedy")
+plot(karate_lo,karate,main="Karate network with Louvain")
+plot(karate_lp,karate,main="Karate network with label propagation")
+plot(karate_eb,karate,main="Karate network with edge betweeness")
+plot(karate_wa,karate,main="Karate network with walktrap")
+```
+
+For assessing the number of communities given by these solutions, we consider the Erdös and Rényi model and the generalized random graph model after fixing the degree sequence of the `karate` network. 
+
+First, we generate $10000$ networks from the Erdös and Rényi model with $N=34$ vertices and $L=78$ edges. Then, for each network, we run the five community detection algorithms and select the number of communities detected by each of them.
+
+```{r }
+set.seed(10)
+N <- vcount(karate)
+L <- ecount(karate)
+n_trials <- 10000
+num_comm_ER_fg <- vector(mode="numeric",length=n_trials)
+num_comm_ER_lo <- vector(mode="numeric",length=n_trials)
+num_comm_ER_lp <- vector(mode="numeric",length=n_trials)
+num_comm_ER_eb <- vector(mode="numeric",length=n_trials)
+num_comm_ER_wa <- vector(mode="numeric",length=n_trials)
+options(warn=-1)
+for (i in 1 : n_trials){
+  ER_karate <- sample_gnm(n=N,m=L)
+  cl_ER_karate_fg <- cluster_fast_greedy(ER_karate)
+  num_comm_ER_fg[i] <- length(cl_ER_karate_fg)
+  cl_ER_karate_lo <- cluster_louvain(ER_karate)
+  num_comm_ER_lo[i] <- length(cl_ER_karate_lo)
+  cl_ER_karate_lp <- cluster_label_prop(ER_karate,
+                    initial=as.vector(membership(cl_ER_karate_lo)))
+  num_comm_ER_lp[i] <- length(cl_ER_karate_lp)  
+  cl_ER_karate_eb <- cluster_edge_betweenness(ER_karate,directed=FALSE)
+  num_comm_ER_eb[i] <- length(cl_ER_karate_eb)
+  cl_ER_karate_wa <- cluster_walktrap(ER_karate)
+  num_comm_ER_wa[i] <- length(cl_ER_karate_wa)
+}
+options(warn=0)
+```
+
+Second, we use the degree sequence and generate $10000$ networks from the generalized random graph model after fixing the degree sequence of the `karate` network with $N=34$ vertices. Then, for each network, we run the five community detection algorithms and select the number of communities detected by each of them.
+
+```{r }
+set.seed(10)
+num_comm_G_fg <- vector(mode="numeric",length=n_trials)
+num_comm_G_lo <- vector(mode="numeric",length=n_trials)
+num_comm_G_lp <- vector(mode="numeric",length=n_trials)
+num_comm_G_eb <- vector(mode="numeric",length=n_trials)
+num_comm_G_wa <- vector(mode="numeric",length=n_trials)
+options(warn=-1)
+for (i in 1 : n_trials){
+  G_karate <- sample_degseq(deg_karate,method="vl")
+  cl_G_karate_fg <- cluster_fast_greedy(G_karate)
+  num_comm_G_fg[i] <- length(cl_G_karate_fg)
+  cl_G_karate_lo <- cluster_louvain(G_karate)
+  num_comm_G_lo[i] <- length(cl_G_karate_lo)
+  cl_G_karate_lp <- cluster_label_prop(G_karate,
+                    initial=as.vector(membership(cl_G_karate_lo)))
+  num_comm_G_lp[i] <- length(cl_G_karate_lp)  
+  cl_G_karate_eb <- cluster_edge_betweenness(G_karate,directed=FALSE)
+  num_comm_G_eb[i] <- length(cl_G_karate_eb)
+  cl_G_karate_wa <- cluster_walktrap(G_karate)
+  num_comm_G_wa[i] <- length(cl_G_karate_wa)
+}
+options(warn=0)
+```
+
+Once, the two experiments have been completed, we can compare the results obtained with each community detection with barplots, as follows:
+
+```{r }
+comm_ER_G_fg <- c(num_comm_ER_fg,num_comm_G_fg)
+ind_comm_ER_G_fg <- c(rep(1,n_trials),rep(2,n_trials))
+freqs_comm_ER_G_fg <- table(ind_comm_ER_G_fg,comm_ER_G_fg) / n_trials
+freqs_comm_ER_G_fg
+color_2 <- "darkorchid2"
+barplot(freqs_comm_ER_G_fg,beside=TRUE,col=c(color_1,color_2),
+        main="Fast greedy",
+        xlab="Number of communities",ylab="Relative frequencies",
+        legend=c("Same size","Same degree sequence"))
+```
+
+```{r }
+comm_ER_G_lo <- c(num_comm_ER_lo,num_comm_G_lo)
+ind_comm_ER_G_lo <- c(rep(1,n_trials),rep(2,n_trials))
+freqs_comm_ER_G_lo <- table(ind_comm_ER_G_lo,comm_ER_G_lo) / n_trials
+freqs_comm_ER_G_lo
+barplot(freqs_comm_ER_G_lo,beside=TRUE,col=c(color_1,color_2),
+        main="Louvain",
+        xlab="Number of communities",ylab="Relative frequencies",
+        legend=c("Same size","Same degree sequence"))
+```
+
+```{r }
+comm_ER_G_lp <- c(num_comm_ER_lp,num_comm_G_lp)
+ind_comm_ER_G_lp <- c(rep(1,n_trials),rep(2,n_trials))
+freqs_comm_ER_G_lp <- table(ind_comm_ER_G_lp,comm_ER_G_lp) / n_trials
+freqs_comm_ER_G_lp
+barplot(freqs_comm_ER_G_lp,beside=TRUE,col=c(color_1,color_2),
+        main="Label propagation",
+        xlab="Number of communities",ylab="Relative frequencies",
+        legend=c("Same size","Same degree sequence"))
+```
+
+```{r }
+comm_ER_G_eb <- c(num_comm_ER_eb,num_comm_G_eb)
+ind_comm_ER_G_eb <- c(rep(1,n_trials),rep(2,n_trials))
+freqs_comm_ER_G_eb <- table(ind_comm_ER_G_eb,comm_ER_G_eb) / n_trials
+freqs_comm_ER_G_eb
+barplot(freqs_comm_ER_G_eb,beside=TRUE,col=c(color_1,color_2),
+        main="Edge betweenness",
+        xlab="Number of communities",ylab="Relative frequencies",
+        legend=c("Same size","Same degree sequence"))
+```
+
+```{r }
+comm_ER_G_wa <- c(num_comm_ER_wa,num_comm_G_wa)
+ind_comm_ER_G_wa <- c(rep(1,n_trials),rep(2,n_trials))
+freqs_comm_ER_G_wa <- table(ind_comm_ER_G_wa,comm_ER_G_wa) / n_trials
+freqs_comm_ER_G_wa
+barplot(freqs_comm_ER_G_wa,beside=TRUE,col=c(color_1,color_2),
+        main="Walktrap ",
+        xlab="Number of communities",ylab="Relative frequencies",
+        legend=c("Same size","Same degree sequence"))
+```
+
+The plots leads to the following comments:
+
+1. Fast greedy selected $3$ communities, however the barplot suggests that $3$ has very low frequency, so that it seems that this solution is not appropriate.
+
+2. Louvain selected $4$ communities and the barplot suggests that $4$ may be a good option although $5$ has more frequency.
+
+3. Label propagation selected $4$ communities, however the barplot is not particularly clear in which number of communities to select.
+
+4. Edge betweenness selected $5$ communities, however the barplot suggest a larger number, that probably is not appropriate for the karate network.
+
+5. Walktrap selected $5$ communities and the batplot shows that this number may be appropriate.
+
+# Small world models
+
+Here, we will consider **small world models** which are models that generate networks with the small world property. As in the previous cases, we consider simple graphs, i.e., undirected and with no loops or multi-edges. Next, we will generate two networks coming from the **Watts-Strogatz model**, which is the most popular small world model. 
+
+For generating a network from the specified model, we need to fix the order $N$, i.e., the number of vertices, the number of neighbors within which the vertices of the lattice will be connected, $r$, and the rewiring probability $p$. The largest effect is the one produced by $r$, therefore we consider two different values $r=3$ and $r=10$, while we fix $p=0.05$. Therefore, we generate the two networks and obtain their main characteristics.
+
+```{r }
+set.seed(10)
+SW_1 <- sample_smallworld(1,100,3,0.05)
+SW_1
+SW_2 <- sample_smallworld(1,100,10,0.05)
+SW_2
+```
+
+Note that the networks have $300$ and $1000$ edges, respectively, resulting from multiplying $N$ with $r$. Next, we obtain a plot with circular layout of the two networks generated. Note that apparently, both networks are not dense at all. However, this is because close vertices are connected and the associated edges cannot be seen in the plot. Thus, we repeat the plots with the Davidson-Harel layout that shows that both networks, specially the second, are highly connected. 
+
+```{r }
+V(SW_1)$color <- V(SW_2)$color <- color_1
+par(mfrow=c(2,2))
+plot.igraph(SW_1,layout=layout_in_circle,
+            main="First SWN with circular layout",
+            vertex.size=8,vertex.label.cex=0.6)
+plot.igraph(SW_1,layout=layout_with_dh,
+            main="First SWN with Davidson-Harel layout",
+            vertex.size=8,vertex.label.cex=0.6)
+plot.igraph(SW_2,layout=layout_in_circle,
+            main="Second SWN with circular layout",
+            vertex.size=8,vertex.label.cex=0.6)
+plot.igraph(SW_2,layout=layout_with_dh,
+            main="Second SWN with Davidson-Harel layout",
+            vertex.size=8,vertex.label.cex=0.6)
+```
+
+Now, we obtain the degree distribution of both networks. In this case, both distributions are quite similar as they are concentrated in the left of the degree range. 
+
+```{r }
+deg_SW_1 <- degree(SW_1)
+deg_dis_SW_1 <- degree_distribution(SW_1)
+par(mfrow=c(1,2))
+plot(0:max(deg_SW_1),deg_dis_SW_1,col=color_1,
+     main="Degree distribution of the first small world network"
+     ,xlab="Degree",ylab="Frequency",type="h")
+points(0:max(deg_SW_1),deg_dis_SW_1,pch=20)
+deg_SW_2 <- degree(SW_2)
+deg_dis_SW_2 <- degree_distribution(SW_2)
+plot(0:max(deg_SW_2),deg_dis_SW_2,col=color_1,
+     main="Degree distribution of the second small world network",
+     xlab="Degree",ylab="Frequency",type="h")
+points(0:max(deg_SW_2),deg_dis_SW_2,pch=20)
+```
+
+Here, we obtain, as before, some of the main characteristics of a network including the average path length, the diameter, the density, the clustering coefficient, the number of components and the size of the network components. Again, all these results suggest that the second network is more dense that the first, which is not surprising.
+
+```{r }
+c(mean_distance(SW_1),mean_distance(SW_2))
+c(diameter(SW_1),diameter(SW_2))
+c(edge_density(SW_1),edge_density(SW_2))
+c(transitivity(SW_1),transitivity(SW_2))
+components(SW_1)
+components(SW_2)
+```
+
+## Assessing small-world propierties
+
+In this section, we show a method to assess whether a real network has the small world property. For that, we use also the `karate` network and generate a large number of random networks with the same number of vertices and edges than those of the karate network. Then, for each network we obtain the clustering coefficient and the average path length. 
+
+```{r }
+set.seed(10)
+num_tran <- vector(mode="numeric",length=n_trials)
+num_ave_path_length <- vector(mode="numeric",length=n_trials)
+for (i in 1 : n_trials){
+  ER_graph <- sample_gnm(n=N,m=L)
+  num_tran[i] <- transitivity(ER_graph)
+  num_ave_path_length[i] <- mean_distance(ER_graph)
+}
+```
+
+Next, we compare the results obtained with those of the karate network. In this case, note that the average path length of the `karate` network is $2.4082$ which is in the middle of the histogram, which it is fine. However, the clustering coefficient is $0.2556$ which is larger than the standard clustering coefficient of the networks with the same number of vertices and edges, which suggests that the `karate` network is closer to owning the small world property than networks with the same characteristics.
+
+```{r }
+transitivity(karate,weights=rep(1,78))
+dist_karate <- distances(karate,weights=rep(1,78))
+mean(dist_karate[lower.tri(dist_karate,diag=FALSE)])
+par(mfrow=c(2,1))
+hist(num_tran,col=color_1,
+     xlab="Clustering coefficients",ylab="Density",main="Karate is 0.2556")
+hist(num_ave_path_length,col=color_2,
+     xlab="Average path length",ylab="Density",main="Karate is 2.4082")
+```
+
+<div class="tocify-extend-page" data-unique="tocify-extend-page" style="height: 0;"></div>

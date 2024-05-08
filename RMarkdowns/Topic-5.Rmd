@@ -1,0 +1,158 @@
+---
+title: "Network analysis"
+subtitle: "Topic 5 - Prediction for networks"
+author: "Pedro Galeano - Máster in Statistics for Data Science - UC3M"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+    toc: yes
+    toc_depth: 3
+    number_sections: yes
+    fig_width: 10.5
+    fig_height: 7.5
+    fig_caption: yes
+    df_print: paged
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE)
+```
+
+# Preliminary steps
+
+In this topic, we are going to work with the `lazega` network that reflects collaborative working relationships among members of a New England law firm. For that, we need to load the `igraph` package for carrying out the analysis that we are going to undertake and the `Bergm` package that contains the network. Then, we load the `lazega` network that is in the `network` format in `R`. In order to work with the functions in the `igraph` package, we have to transform the network to the `igraph` format. For that, we load the `intergraph` package that contains the function `asIgraph` that gives us the `lazega` network in `igraph` format in the object called `lazega_network`. Note that the network has $36$ vertices, corresponding to $36$ lawyers, and $115$ relationships between them. Additionally, the network has eight vertex attributes and one edge attribute. We have a look at a basic representation of the network:
+
+```{r, message=FALSE}
+library(igraph)
+data(lazega,package="Bergm")
+lazega_network <- intergraph::asIgraph(lazega)
+lazega_network
+color_1 <- "deepskyblue2"
+V(lazega_network)$color <- color_1
+plot.igraph(lazega_network,main="Lazega network")
+```
+
+Now, we can have a look at the eight attributes of the vertices and the edge attribute of the `lazega` network. On the one hand, the vertex attributes are:
+
+1. `Age`, which is the age of the lawyer.
+
+2. `Gender`, which is 1 for man and 2 for woman.
+
+3. `na`, which is equal to `FALSE` for all the vertices. This attribute is an error when transforming the network to `igraph` format.
+
+4. `Office`, which is 1 for Boston, 2 for Hartford, and 3 for Providence.
+
+5. `Practice`, which is 1 for litigation and 2 for corporate law.
+
+6. `School`, which is 1 for Harvard or Yale, 2 for University of Connecticut, and 3 for other.
+
+7. `vertex.names`, which is the name of the vertex (V1, V2,...)
+
+8. `Years`, which is the number of years in the firm.
+
+On the other hand, the edge attribute is:
+
+1. `na`, which is equal to `FALSE` for all the edges. This attribute is an error when transforming the network to `igraph` format.
+
+We have a look at all the vertex attributes using the function `vertex_attr`:
+
+```{r }
+vertex_attr_names(lazega_network)
+edge_attr_names(lazega_network)
+vertex_attr(lazega_network)
+```
+
+# Predicting a static process
+
+The focus here is on the vertex attribute `Practice`. Let's have a look at the network after distinguishing between the two types of practice. For that, we use two colors for the vertices of the network:
+
+```{r }
+color_2 <- "darkorange2"
+V(lazega_network)$color <- c(color_1,color_2)[V(lazega_network)$Practice]
+plot.igraph(lazega_network,main="Lazega network")
+```
+
+Now, we create a table corresponding to the different edges comparing the corresponding practice. As it can be seen, of the $115$ edges in the network graph, $29+43=72$ (the $63\%$) involve pairs of lawyers with common practice. Thus, knowing the collaborator's practice is informative. So, the idea is to get advantage of such knowledge to solve the prediction problem:
+
+```{r }
+f1 <- V(lazega_network)$Practice[as_edgelist(lazega_network)[,1]]
+f2 <- V(lazega_network)$Practice[as_edgelist(lazega_network)[,2]]
+m11 <- sum((f1==f2)*(f1==1))
+m12 <- sum((f1!=f2)*(f1==1))
+m21 <- sum((f1!=f2)*(f1==2))
+m22 <- sum((f1==f2)*(f1==2))
+matrix(c(m11,m21,m12,m22),nrow=2)
+```
+
+Next, we apply the nearest neighbor method to predict the practice of the lawyers in the network. This is very close to use nearest neighbor prediction in supervised classification. Therefore, the idea is similar to that of leave-one-out cross validation. More precisely, we follow the next steps:
+
+1. Define the subgraph after skipping the two lawyers that are isolated.
+
+2. For each vertex in the subgraph:
+
+    a. Obtain its neighbors.
+  
+    b. Predict `Practice` for such vertex with nearest neighbor prediction.
+  
+    c. Compare the predicted value with the true `Practice`.
+
+The following code implements such procedure. Note that:
+
+1. `ind_conn` is the vector that contains the connected vertices.
+
+2. `lazega_network_conn` is the network of the connected vertices.
+
+3. `pred_practice` is the vector that contains the prediction of `Practice` for each lawyer.
+
+4. `ind_pred_practice` is an indicator vector of the successes of the prediction (1, if the prediction if good, 0 is the prediction is bad).
+
+5. `num.success` is the number of successes.
+
+6. `prop.success` is the proportion of successes.
+
+Additionally, `modes` is a function that compute the mode/s of a sample:
+
+```{r }
+ind_conn <- (1:36)[-c(8,23)]
+lazega_network_conn <- induced_subgraph(lazega_network,ind_conn)
+pred_practice <- vector(mode="numeric",length=gorder(lazega_network_conn))
+ind_pred_practice <- vector(mode="numeric",length=gorder(lazega_network_conn))
+modes <- function(x){
+  ux <- unique(x)
+  tab <- tabulate(match(x,ux))
+  ux[tab==max(tab)]
+}
+set.seed(1)
+for (i in 1 : 34){
+  neigh_prac <- V(lazega_network_conn)$Practice[as.numeric(neighbors(lazega_network_conn,i))]
+  modes_neigh_prac <- modes(neigh_prac)
+  l_modes_neigh_prac <- length(modes_neigh_prac)
+  if (l_modes_neigh_prac==1){
+    pred_practice[i] <- modes_neigh_prac
+  }else{
+    pred_practice[i] <- sample(modes_neigh_prac,1)
+  }
+  ind_pred_practice[i] <- 1*(pred_practice[i]==V(lazega_network_conn)$Practice[i])
+}
+num_success <- sum(ind_pred_practice)
+num_success
+prop_success <- num_success / 34
+prop_success
+```
+
+Finally, we make a plot of the network with the vertices with good and bad predictions. For that, we define the attribute `color` such that is green if `Practice` has been well predicted for the vertex, and is violet if `Practice` has been badly predicted for the vertex.
+
+```{r }
+color_3 <- "darkorchid2"
+color_4 <- "seagreen2"
+V(lazega_network_conn)$color <- c(color_3,color_4)[ind_pred_practice+1]
+plot.igraph(lazega_network_conn,main="Lazega network",vertex.label=ind_conn)
+```
+
+<div class="tocify-extend-page" data-unique="tocify-extend-page" style="height: 0;"></div>

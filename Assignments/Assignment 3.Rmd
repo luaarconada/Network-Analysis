@@ -5,6 +5,7 @@ date: "`r Sys.Date()`"
 output: html_document
 ---
 
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -586,6 +587,12 @@ summary(first_fit_w_out)
 ```
 
 ```{r}
+second_fit_out <- lm(log_weighted_deg_dist_out~log_weighted_deg_out,weights=1/first_fit_w_out$fitted.values^2)
+summary(second_fit_out)
+```
+
+
+```{r}
 plot(log_weighted_deg_out,log_weighted_deg_dist_out,
      col=color_1,main="Log-log out-weighted degree distribution of US Congress network",
      xlab="Log-out-Weighted-Degree",ylab="Log-Frequency",pch=19)
@@ -599,17 +606,3 @@ The in-degree distribution of our graph provides valuable insights into its stru
 On the other hand, the out-degree distribution's behavior with weighted edges is different. The linear regression for the out-degree distribution does not fit the data as well when considering weights. This discrepancy could arise due to various reasons. For instance, the weights might introduce noise or the way weights are assigned could influence the distribution differently than simple counts of outgoing edges.
 
 In summary, while our weighted in-degree distribution offers a richer understanding of a network's structure, the linear regression of our weighted out-degree distribution does not provide a better fit compared to its unweighted counterparts. This highlights the importance of carefully considering the nature and implications of edge weights when analyzing graph structures.
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -14,7 +14,7 @@ library(igraph)
 set.seed(1234)
 ```
 
-## Assignment 2
+# Assignment 2
 
 Last week data (weights)
 

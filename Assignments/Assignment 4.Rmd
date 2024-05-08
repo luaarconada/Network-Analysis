@@ -306,7 +306,7 @@ head(max_cliques, n = 30)
 
 We can see that we have many small cliques, several cliques consist of only two congresspeople, such as Frederica Wilson and John Sarbanes, or Frederica Wilson and Frank Lucas. These smaller cliques may represent pairs of congresspeople who share common interests or frequently collaborate on specific issues. Moreover, there is some overlap between cliques, where certain congresspeople appear in multiple cliques. For example, John Yarmuth appears in cliques with different congresspeople, including Dina Titus, Chris Stewart, and Dan Bishop. This overlap suggests that John Yarmuth plays a bridging role between different cohesive subgroups within the network.
 
-Moreover, the variety of the background of the present people in a graph remains presenting a diverse range of backgrounds, political affiliations, and regions. For instance, Joe Wilson interacts with Diana Harshbarger and Carlos Giménez in one clique and with Marco Rubio and Bill Johnson in another. This diversity reflects the broad spectrum of interactions and collaborations within the Congress network. Once again, we have members of different political parties (Democrat andcRepublican) collaborating. For example, Steve Womack interacts with both Marc Veasey and Patrick McHenry, suggesting opportunities for cooperation on legislative matters despite differing party affiliations.
+Moreover, the variety of the background of the present people in a graph remains presenting a diverse range of backgrounds, political affiliations, and regions. For instance, Joe Wilson interacts with Diana Harshbarger and Carlos Giménez in one clique and with Marco Rubio and Bill Johnson in another. This diversity reflects the broad spectrum of interactions and collaborations within the Congress network. Once again, we have members of different political parties (Democrat and Republican) collaborating. For example, Steve Womack interacts with both Marc Veasey and Patrick McHenry, suggesting opportunities for cooperation on legislative matters despite differing party affiliations.
 
 A key figure that we can identify from these cliques is, for example, Donald Norcross, who is involved in several cliques with different combinations of congresspeople, indicating his central role in the network.
 
@@ -315,8 +315,6 @@ However, we have not seen what happened with those cliques of a higher order. Fo
 ```{r}
 table(sapply(max_cliques,length))
 ```
-
-Certainly, here's the corrected version:
 
 We can see that none of the cliques of order $1$ are maximal cliques. Moreover, only $94$ out of the $10222$ cliques of degree $2$ are maximal cliques. Furthermore, out of the $52333$ cliques of order $3$, $1041$ are maximal. In general, the number of maximal cliques out of the total number of cliques at one degree is much smaller, except with degree $13$, where all are maximal cliques.
 

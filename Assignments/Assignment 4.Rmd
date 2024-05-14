@@ -460,7 +460,7 @@ gc
 ```
 
 ```{r}
-mean_distance(gc)
+mean_distance(gc, weights = 1 / E(gc)$weight)
 ```
 
 ```{r}
